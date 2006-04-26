@@ -1,0 +1,19 @@
+This package was debianized by Alexandre Fayolle <alexandre.fayolle@logilab.fr>  Tue, 9 Apr 2001 11:05:23 +0100.
+
+It was downloaded from ftp://ftp.logilab.org/pub/hmm/
+
+Upstream Author(s): 
+
+  Alexandre Fayolle <alexandre.fayolle@logilab.fr>
+  Sylvain Thenault <sylvain.thenault@logilab.fr>
+  Ludovic Aubry <ludovic.aubry@logilab.fr>
+
+Copyright:
+
+Copyright (c) 2001-2002 LOGILAB S.A. (Paris, FRANCE).
+http://www.logilab.fr/ -- mailto:contact@logilab.fr
+
+HMM is released under the GNU GPL licence as free, opensource software. 
+On Debian GNU/Linux systems, the complete test of the the GNU General Public 
+License can be found in /usr/share/common-licenses/GPL 
+

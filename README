@@ -1,0 +1,71 @@
+NAME
+    logilab.hmm.hmm
+
+DESCRIPTION
+    Hidden Markov Models in Python
+    Implementation based on _A Tutorial on Hidden Markov Models and Selected
+    Applications in Speech Recognition_, by Lawrence Rabiner, IEEE, 1989.
+    This module uses numeric python multyarrays to improve performance and
+    reduce memory usage
+
+CLASSES
+    HMM
+    
+    class HMM
+     |  A Hidden Markov Model implementation
+     |  Methods are provided for computing the probabitility of a sequence of
+     |  observation, computing the most probable state transitions leading to
+     |  a sequence of observations, as well as supervised and unsupervised
+     |  training of the model and generation of sequences of observations
+     |  (simulation).
+     |  The notations (member variables and some method names), especially greek
+     |  letter names are directly inspired by [Rabiner89] mentionned above.
+     |  Comments in the source code mentionning a number are references to
+     |  equations in the algorithm descriptions of that paper.
+     |  
+     |  __getinitargs__(self)
+     |      helper method for pickling
+     |  
+     |  __init__(self, state_list, observation_list, transition_proba=None, observation_proba=None, initial_state_proba=None)
+     |      Builds a new Hidden Markov Model
+     |      state_list is the list of state symbols [q_0...q_(N-1)]
+     |      observation_list is the list of observation symbols [v_0...v_(M-1)]
+     |      transition_proba is the transition probability matrix
+     |          [a_ij] a_ij = Pr(X_(t+1)=q_j|X_t=q_i)
+     |      observation_proba is the observation probablility matrix
+     |          [b_ik] b_ik = Pr(O_t=v_k|X_t=q_i)
+     |      initial_state_proba is the initial state distribution
+     |          [pi_i] pi_i = Pr(X_0=q_i)
+     |  
+     |  
+     |  analyze(self, observations)
+     |      use Viterbi algorithm to
+     |      find the states corresponding to the observations
+     |  
+     |  learn(self, observations, states=None)
+     |  
+     |  setInitialProba(self, state, value)
+     |      set the probability of being initially in state 'state'
+     |  
+     |  setObservationProba(self, state, obs, value)
+     |      set the probability of generating observation 'obs' when in state 'state'
+     |  
+     |  setRandomInitialProba(self)
+     |      set initial state probability matrix to some random values
+     |  
+     |  setRandomObservationProba(self)
+     |      set observation probability matrix to some random values
+     |  
+     |  setRandomProba(self)
+     |  
+     |  setRandomTransitionProba(self)
+     |      set transition probability matrix to some random values
+     |  
+     |  setTransitionProba(self, state1, state2, value)
+     |      set the probability of a transition form 'state1' to 'state2'
+     |  
+     |  simulate(self, length, show_hidden=0)
+     |      generates a random sequence of observations of given length
+     |      if show_hidden is true, returns a liste of (state,observation)
+
+
