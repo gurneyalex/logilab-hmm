@@ -6,21 +6,21 @@
 #export DH_VERBOSE=1
 
 # This is the debhelper compatability version to use.
-export DH_COMPAT=3
+export DH_COMPAT=5
 
 
 PACKAGE=hmm
 
-PY2.1_TMP=debian/python2.1-logilab-$(PACKAGE)
-PY2.2_TMP=debian/python2.2-logilab-$(PACKAGE)
+PY2.3_TMP=debian/python2.3-logilab-$(PACKAGE)
+PY2.4_TMP=debian/python2.4-logilab-$(PACKAGE)
 # don't build for python2.3 as numpy is not available yet
 #PY2.3_TMP=debian/python2.3-logilab-$(PACKAGE)
 
 build: build-stamp
 build-stamp: 
 	dh_testdir
-	python2.1 setup.py -q build
-	python2.2 setup.py -q build
+	python2.3 setup.py -q build
+	python2.4 setup.py -q build
 	#python2.3 setup.py -q build
 	touch build-stamp
 
@@ -29,7 +29,7 @@ clean:
 	dh_testroot
 	rm -f build-stamp configure-stamp
 	rm -rf build
-	rm -rf $(PY2.1_TMP) $(PY2.2_TMP) #$(PY2.3_TMP)
+	rm -rf $(PY2.3_TMP) $(PY2.4_TMP) #$(PY2.3_TMP)
 	dh_clean
 
 install: build
@@ -39,13 +39,13 @@ install: build
 	dh_installdirs
 
 	# Install for all Python versions.
-	python2.1 setup.py -q install --root=$(PY2.1_TMP) --no-compile
-	python2.2 setup.py -q install --root=$(PY2.2_TMP) --no-compile
+	python2.3 setup.py -q install --root=$(PY2.3_TMP) --no-compile
+	python2.4 setup.py -q install --root=$(PY2.4_TMP) --no-compile
 	#python2.3 setup.py -q install --root=$(PY2.3_TMP) --no-compile
 	# logilab/__init__.py is shared among different python-logilab packages
 	# it is created in postinst script
-	rm $(PY2.1_TMP)/usr/lib/python2.1/site-packages/logilab/__init__.py
-	rm $(PY2.2_TMP)/usr/lib/python2.2/site-packages/logilab/__init__.py
+	rm $(PY2.3_TMP)/usr/lib/python2.3/site-packages/logilab/__init__.py
+	rm $(PY2.4_TMP)/usr/lib/python2.4/site-packages/logilab/__init__.py
 	#rm $(PY2.3_TMP)/usr/lib/python2.3/site-packages/logilab/__init__.py
 
 # Build architecture-independent files here.
