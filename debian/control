@@ -2,42 +2,20 @@ Source: python-logilab-hmm
 Section: python
 Priority: optional
 Maintainer: Alexandre Fayolle <alexandre.fayolle@logilab.fr>
-Build-Depends: debhelper (>= 5.0.0), python2.3-numeric, python2.4-numeric, python2.3-dev, python2.4-dev, python-dev
+Build-Depends: debhelper (>= 5.0.37.1), python-all-dev (>=2.3.5-7), python-all (>=2.3.5-7), python-central, python-numeric (>=24.2-3)
+XS-Python-Version: all
 Standards-Version: 3.7.2
 
 Package: python-logilab-hmm
-Architecture: all
-Depends: python (>= 2.3), python (<< 2.4), python2.3-logilab-hmm (>= ${Source-Version})
-Description: Hidden Markov Models in  python [dummy package]
- Hmm is a python module providing an implementation of Hidden Markov Model 
- and associated algorithms (Viterbi and Baum-Welsh). It uses Numeric Python 
- to speed up the computations. The implementation is based on 
- _A Tutorial on Hidden Markov Models and Selected Applications in Speech 
- Recognition_, by Lawrence Rabiner, IEEE, 1989.
- .
- This package is an empty dummy package that always depends on
- a package built for Debian's default Python version.
-
-Package: python2.3-logilab-hmm
 Architecture: any
-Depends: python2.3, python2.3-numeric, ${shlibs:Depends}
-Description: Hidden Markov Models in  python [built for python2.3]
+Depends: ${python:Depends}
+Provides: ${python:Provides}
+XB-Python-Version: ${python:Versions}
+Description: hidden Markov models in  python 
  Hmm is a python module providing an implementation of Hidden Markov Model 
  and associated algorithms (Viterbi and Baum-Welsh). It uses Numeric Python 
  to speed up the computations. The implementation is based on 
  _A Tutorial on Hidden Markov Models and Selected Applications in Speech 
  Recognition_, by Lawrence Rabiner, IEEE, 1989.
  .
- This package is build with python-2.3.
-
-Package: python2.4-logilab-hmm
-Architecture: any
-Depends: python2.4, python2.4-numeric, ${shlibs:Depends}
-Description: Hidden Markov Models in  python [built for python2.4]
- Hmm is a python module providing an implementation of Hidden Markov Model 
- and associated algorithms (Viterbi and Baum-Welsh). It uses Numeric Python 
- to speed up the computations. The implementation is based on 
- _A Tutorial on Hidden Markov Models and Selected Applications in Speech 
- Recognition_, by Lawrence Rabiner, IEEE, 1989.
- .
- This package is build with python-2.4.
+ homepage: http://www.logilab.org/projects/hmm
