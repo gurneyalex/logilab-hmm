@@ -5,63 +5,43 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-# This is the debhelper compatability version to use.
-export DH_COMPAT=5
-
-
-PACKAGE=hmm
-
-PY2.3_TMP=debian/python2.3-logilab-$(PACKAGE)
-PY2.4_TMP=debian/python2.4-logilab-$(PACKAGE)
-# don't build for python2.3 as numpy is not available yet
-#PY2.3_TMP=debian/python2.3-logilab-$(PACKAGE)
+PYVERS:= $(shell pyversions -v -rdebian/control)
 
 build: build-stamp
-build-stamp: 
+build-stamp: $(PYVERS:%=build-stamp-%)
+	touch $@
+
+build-stamp-%:
 	dh_testdir
-	python2.3 setup.py -q build
-	python2.4 setup.py -q build
-	#python2.3 setup.py -q build
-	touch build-stamp
+	python$* setup.py -q build
+	touch $@
 
 clean: 
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp configure-stamp
+	rm -f build-stamp* install-stamp* 
 	rm -rf build
-	rm -rf $(PY2.3_TMP) $(PY2.4_TMP) #$(PY2.3_TMP)
 	dh_clean
 
-install: build
+install: install-stamp
+
+install-stamp: build $(PYVERS:%=install-stamp-%)
 	dh_testdir
 	dh_testroot
-	dh_clean -k
 	dh_installdirs
+	touch $@
 
-	# Install for all Python versions.
-	python2.3 setup.py -q install --root=$(PY2.3_TMP) --no-compile
-	python2.4 setup.py -q install --root=$(PY2.4_TMP) --no-compile
-	#python2.3 setup.py -q install --root=$(PY2.3_TMP) --no-compile
-	# logilab/__init__.py is shared among different python-logilab packages
-	# it is created in postinst script
-	rm $(PY2.3_TMP)/usr/lib/python2.3/site-packages/logilab/__init__.py
-	rm $(PY2.4_TMP)/usr/lib/python2.4/site-packages/logilab/__init__.py
-	#rm $(PY2.3_TMP)/usr/lib/python2.3/site-packages/logilab/__init__.py
+
+install-stamp%: build-stamp-%
+	dh_testdir
+	dh_testroot
+	python$* setup.py -q install --prefix=debian/python-hmm/usr --no-compile
+	rm -f debian/python-hmm/usr/lib/python$*/site-packages/logilab/__init__.py
+	touch $@
+
 
 # Build architecture-independent files here.
-binary-indep: build install
-	dh_testdir -i
-	dh_testroot -i
-
-	dh_installdocs -i -A README
-	dh_installchangelogs -i
-	dh_link -i
-	dh_compress -i
-	dh_fixperms -i
-	dh_installdeb -i
-	dh_gencontrol -i 
-	dh_md5sums -i
-	dh_builddeb -i
+binary-indep: 
 
 # Build architecture-dependent files here.
 binary-arch: build install
@@ -80,6 +60,6 @@ binary-arch: build install
 	dh_md5sums -a
 	dh_builddeb -a
 
-binary: binary-indep binary-arch
+binary: binary-arch
 .PHONY: build clean binary-indep binary-arch binary
 
