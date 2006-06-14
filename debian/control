@@ -1,4 +1,4 @@
-Source: python-logilab-hmm
+Source: python-hmm
 Section: python
 Priority: optional
 Maintainer: Alexandre Fayolle <alexandre.fayolle@logilab.fr>
@@ -6,7 +6,7 @@ Build-Depends: debhelper (>= 5.0.37.1), python-all-dev (>=2.3.5-7), python-all (
 XS-Python-Version: all
 Standards-Version: 3.7.2
 
-Package: python-logilab-hmm
+Package: python-hmm
 Architecture: any
 Depends: ${python:Depends}
 Provides: ${python:Provides}

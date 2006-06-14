@@ -5,7 +5,7 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-PYVERS:= $(shell pyversions -v -rdebian/control)
+PYVERS:=$(shell pyversions -v -rdebian/control)
 
 build: build-stamp
 build-stamp: $(PYVERS:%=build-stamp-%)
@@ -32,7 +32,7 @@ install-stamp: build $(PYVERS:%=install-stamp-%)
 	touch $@
 
 
-install-stamp%: build-stamp-%
+install-stamp-%: build-stamp-%
 	dh_testdir
 	dh_testroot
 	python$* setup.py -q install --prefix=debian/python-hmm/usr --no-compile
