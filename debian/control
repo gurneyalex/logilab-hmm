@@ -8,7 +8,7 @@ Standards-Version: 3.7.2
 
 Package: python-hmm
 Architecture: any
-Depends: ${python:Depends}
+Depends: ${python:Depends}, python-logilab-common (>= 0.16.1-2)
 Provides: ${python:Provides}
 XB-Python-Version: ${python:Versions}
 Description: hidden Markov models in  python 
