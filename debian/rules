@@ -50,6 +50,8 @@ binary-arch: build install
 	dh_installdocs -a -A README
 	dh_installexamples -a
 	dh_installchangelogs -a
+	dh_pycentral -a
+	dh_python -a
 	dh_strip -a
 	dh_link -a
 	dh_compress -a 
