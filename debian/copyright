@@ -2,13 +2,11 @@ This package was debianized by Alexandre Fayolle <alexandre.fayolle@logilab.fr> 
 
 It was downloaded from ftp://ftp.logilab.org/pub/hmm/
 
-Upstream Author(s): 
+Upstream Authors: 
 
   Alexandre Fayolle <alexandre.fayolle@logilab.fr>
   Sylvain Thenault <sylvain.thenault@logilab.fr>
   Ludovic Aubry <ludovic.aubry@logilab.fr>
-
-Copyright:
 
 Copyright (c) 2001-2002 LOGILAB S.A. (Paris, FRANCE).
 http://www.logilab.fr/ -- mailto:contact@logilab.fr

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # pylint: disable-msg=C0103, C0101
 # -*- coding: ISO-8859-1 -*-
 
