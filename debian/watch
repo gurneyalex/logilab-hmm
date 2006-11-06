@@ -1,2 +1,3 @@
 version=2
-ftp://ftp.logilab.org/pub/hmm/hmm-(.*)\.tar\.gz	debian	uupdate
+ftp://ftp.logilab.org/pub/hmm/logilab-hmm-(.*)\.tar\.gz	debian	uupdate
+
