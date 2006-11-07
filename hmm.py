@@ -40,18 +40,31 @@ DISPITER = 10
 # use the python implementation of (alpha,beta,ksi...)
 # Allowable values for use_hmm:
 #  0 : use the python defined functions
-#  1 : use the C optimized functions
+#  1 : use the C optimized functions (deprecated)
 #  2 : use the python wrapper for the C functions (for profiling purposes)
-use__hmm = 1
+#  3 : use the fortran optimized functions
+_hmm = None
+hmm_ops = None
+
 try:
     import _hmm
+    use__hmm = 1
 except ImportError:
-    try:
-        import logilab.hmm._hmm
-    except ImportError:
-        use__hmm = 0
-        print "Could not load _hmm, Falling back to python implementation"
+    use__hmm = 0
 
+try:
+    import logilab.hmm._hmm as _hmm
+    use__hmm = 1
+except ImportError:
+    use__hmm = 0
+
+try:
+    import hmm_ops
+    use__hmm = 3
+except ImportError:
+    pass
+
+#use__hmm = 1
 
 matrixproduct = multiarray.matrixproduct
 
@@ -224,6 +237,63 @@ def _normalize_B( B_bar, sigma_gamma_B ):
 def _normalize_B_prof( B_bar, sigma_gamma_B ):
     _hmm._hmm_normalize_B( B_bar, sigma_gamma_B )
 
+if use__hmm == 0:
+    ## Default python
+    HMM_OPTIMIZATIONS = { "AlphaScaled" : _alpha_scaled,
+                          "BetaScaled" : _beta_scaled,
+                          "Ksi" : _ksi,
+                          "Clear" : _clear,
+                          "UpdateIterB" : _update_iter_B,
+                          "CorrectM" : _correctm,
+                          "Allclose" : allclose,
+                          "NormalizeB" : _normalize_B,
+                          }
+elif use__hmm == 1:
+    ## Optimised version
+    HMM_OPTIMIZATIONS = { "AlphaScaled" : _hmm._hmm_alpha_scaled,
+                          "BetaScaled" : _hmm._hmm_beta_scaled,
+                          "Ksi" : _hmm._hmm_ksi,
+                          "Clear" : _hmm._array_set,
+                          "UpdateIterB" : _hmm._hmm_update_iter_B,
+                          "CorrectM" : _hmm._hmm_correctm,
+                          "Allclose" : _hmm._array_allclose,
+                          "NormalizeB" : _hmm._hmm_normalize_B,
+                          }
+elif use__hmm == 2:
+    ## Profiling version
+    HMM_OPTIMIZATIONS = { "AlphaScaled" : _alpha_scaled_prof,
+                          "BetaScaled" : _beta_scaled_prof,
+                          "Ksi" : _ksi_prof            ,
+                          "Clear" : _clear_prof,
+                          "UpdateIterB" : _update_iter_B_prof,
+                          "CorrectM" : _correctm_prof,
+                          "Allclose" : _hmm._array_allclose,
+                          "NormalizeB" : _normalize_B_prof,
+                          }
+elif use__hmm == 3:
+    ## Fortran version
+    HMM_OPTIMIZATIONS = { "AlphaScaled" : hmm_ops.hmm_ops.alpha_scaled,
+                          "BetaScaled" : hmm_ops.hmm_ops.beta_scaled,
+                          "Ksi" : hmm_ops.hmm_ops.hmm_ksi,
+                          "Clear" : _clear,
+                          "UpdateIterB" : hmm_ops.hmm_ops.update_iter_b,
+                          "CorrectM" : hmm_ops.hmm_ops.correctm,
+                          "Allclose" : allclose,
+                          "NormalizeB" : hmm_ops.hmm_ops.normalize_b,
+                          }
+
+    HMM_OPTIMIZATIONS = { "AlphaScaled" : _hmm._hmm_alpha_scaled,
+                          "BetaScaled" : hmm_ops.hmm_ops.beta_scaled,
+                          "Ksi" : _hmm._hmm_ksi,
+                          "Clear" : _hmm._array_set,
+                          "UpdateIterB" : _hmm._hmm_update_iter_B,
+                          "CorrectM" : _hmm._hmm_correctm,
+                          "Allclose" : _hmm._array_allclose,
+                          "NormalizeB" : _hmm._hmm_normalize_B,
+                          }
+
+
+
 ## ----------------------------------------------------------------------
 
 class HMM:
@@ -282,33 +352,8 @@ class HMM:
         or python-C wrappers. This function is called by init so the
         implementation used depends on the value of use__hmm at the
         time the constructor is called."""
-        if use__hmm == 1: ## Optimised version
-            self.AlphaScaled = _hmm._hmm_alpha_scaled
-            self.BetaScaled = _hmm._hmm_beta_scaled
-            self.Ksi = _hmm._hmm_ksi
-            self.Clear = _hmm._array_set
-            self.UpdateIterB = _hmm._hmm_update_iter_B
-            self.CorrectM = _hmm._hmm_correctm
-            self.Allclose = _hmm._array_allclose
-            self.NormalizeB = _hmm._hmm_normalize_B
-        elif use__hmm == 2: ## Profiling version
-            self.AlphaScaled = _alpha_scaled_prof
-            self.BetaScaled = _beta_scaled_prof
-            self.Ksi = _ksi_prof            
-            self.Clear = _clear_prof
-            self.UpdateIterB = _update_iter_B_prof
-            self.CorrectM = _correctm_prof
-            self.Allclose = _hmm._array_allclose
-            self.NormalizeB = _normalize_B_prof
-        else: ## Default to python version
-            self.AlphaScaled = _alpha_scaled
-            self.BetaScaled = _beta_scaled
-            self.Ksi = _ksi
-            self.Clear = _clear
-            self.UpdateIterB = _update_iter_B
-            self.CorrectM = _correctm
-            self.Allclose = allclose
-            self.NormalizeB = _normalize_B
+        for k, v in HMM_OPTIMIZATIONS.items():
+            setattr( self, k, v )
     
         
     def makeIndexes(self):

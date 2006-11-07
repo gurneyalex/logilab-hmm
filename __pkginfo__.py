@@ -45,9 +45,9 @@ mailinglist = "http://lists.logilab.org/mailman/listinfo/ai-projects"
 subpackage_of = 'logilab'
 
 try:
-    from distutils.core import Extension
-    ext_modules = [Extension('logilab.hmm._hmm', ['_hmm.c'],
-                             libraries=['m'], extra_compile_args=[])]
+    from numpy.distutils.extension import Extension
+    ext_modules = [Extension('hmm_ops', ['_hmmf.f90'],
+                             libraries=['gfortran'])]
 except:
     pass
     

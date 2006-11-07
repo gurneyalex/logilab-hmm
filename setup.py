@@ -23,7 +23,9 @@ from __future__ import nested_scopes
 import os
 import sys
 import shutil
-from distutils.core import setup
+import numpy.distutils
+from numpy.distutils.core import setup
+from numpy.distutils.extension import Extension
 from os.path import isdir, exists, join, walk
 
 # import required features
@@ -169,6 +171,6 @@ def install(**kwargs):
                 dest = join(_install.install_dir, base, directory)
                 export(directory, dest)
     return dist
-            
+             
 if __name__ == '__main__' :
     install()
