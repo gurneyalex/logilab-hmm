@@ -110,7 +110,7 @@ def _alpha_scaled(A, Bo, pi):
     scaling_factors = zeros( T, Float )
     scaling_factors[0] = 1./add.reduce(alpha_t)
     alpha_scaled = zeros( (T, N), Float)
-    alpha_scaled[0] = alpha_t*scaling_factors[0]             
+    alpha_scaled[0] = alpha_t*scaling_factors[0]
     for i in xrange(1, T):
         alpha_t = matrixproduct(alpha_scaled[i-1], A)*Bo[i]  # (92a)
         scaling_t = 1./add.reduce(alpha_t)
@@ -352,8 +352,38 @@ class HMM:
         or python-C wrappers. This function is called by init so the
         implementation used depends on the value of use__hmm at the
         time the constructor is called."""
+<<<<<<< /home/ludal/SB/src/logilab/hmm/hmm.py
+        if use__hmm == 1: ## Optimised version
+            self.AlphaScaled = _hmm._hmm_alpha_scaled
+            self.BetaScaled = _hmm._hmm_beta_scaled
+            self.Ksi = _hmm._hmm_ksi
+            self.Clear = _hmm._array_set
+            self.UpdateIterB = _hmm._hmm_update_iter_B
+            self.CorrectM = _hmm._hmm_correctm
+            self.Allclose = _hmm._array_allclose
+            self.NormalizeB = _hmm._hmm_normalize_B
+        elif use__hmm == 2: ## Profiling version
+            self.AlphaScaled = _alpha_scaled_prof
+            self.BetaScaled = _beta_scaled_prof
+            self.Ksi = _ksi_prof
+            self.Clear = _clear_prof
+            self.UpdateIterB = _update_iter_B_prof
+            self.CorrectM = _correctm_prof
+            self.Allclose = _hmm._array_allclose
+            self.NormalizeB = _normalize_B_prof
+        else: ## Default to python version
+            self.AlphaScaled = _alpha_scaled
+            self.BetaScaled = _beta_scaled
+            self.Ksi = _ksi
+            self.Clear = _clear
+            self.UpdateIterB = _update_iter_B
+            self.CorrectM = _correctm
+            self.Allclose = allclose
+            self.NormalizeB = _normalize_B
+=======
         for k, v in HMM_OPTIMIZATIONS.items():
             setattr( self, k, v )
+>>>>>>> /tmp/hmm.py~other.zd8GTq
     
         
     def makeIndexes(self):
@@ -423,12 +453,26 @@ class HMM:
         assert self.pi.shape == (self.N, ), \
                """transition_proba must be a N element vector,
                where N is len(state_list)"""
-        assert alltrue( (add.reduce( self.A, 1 ) - 1 ) > -EPSILON and \
-                       self.A <= 1.0 and self.A >= 0.0 ), \
-                       """transition_proba must be a probability matrix"""
-        assert alltrue( (add.reduce(self.B) - 1) > -EPSILON * ones(self.N)), \
-               """each column of observation_proba must sum to 1"""
- 
+        reduced = add.reduce(self.A,1) - 1
+        assert (alltrue(reduced < EPSILON) and \
+                alltrue(reduced > -EPSILON) and \
+                alltrue(alltrue(self.A<=1.0)) and \
+                alltrue(alltrue(self.A>=0.0))),\
+                """transition_proba must be a probability matrix"""
+        reduced = add.reduce(self.B,0) - 1
+        assert (alltrue(reduced < EPSILON) and \
+                alltrue(reduced > -EPSILON) and \
+                alltrue(alltrue(self.B<=1.0)) and \
+                alltrue(alltrue(self.B>=0.0))),\
+                """each column of observation_proba must be a probability
+                vector"""
+        if len(self.pi)==0: # a zero length vector is reduced to a scalar
+            return          # and makes the following test fail
+        reduced = add.reduce(self.pi) - 1
+        assert (reduced < EPSILON and reduced > -EPSILON and \
+                alltrue(self.pi<=1.0) and \
+                alltrue(self.pi>=0.0)), \
+                """initial_state_proba must be a probability vector"""
 
 
     def dump(self):
@@ -780,8 +824,11 @@ class HMM:
         sigma_gamma = add.reduce(gamma[:-1])
         ## Compute new PI
         pi_bar = gamma[0]                       # (40a)
+
         ## Compute new A
-        A_bar  = add.reduce(ksi) / sigma_gamma[:, NewAxis] # (40b)
+        A_bar  = add.reduce(ksi)
+        A_bar /= sigma_gamma[:, NewAxis] # (40b)
+        
         ## Compute new B
         B_bar = zeros( (self.M, self.N), Float )
         for i in xrange( len(obsIndices) - 1 ):
@@ -845,7 +892,7 @@ def test2():
     for mot in nom + verbe + adj + adv + det + pro + pre:
         univers.append(mot)
     test = HMM(['adj', 'nom', 'verbe', 'adv', 'det', 'pro', 'pre'], univers)
-
+    test.A[:,:] = 0.0 # clear transition proba
     test.setTransitionProba('det', 'adj', .5)
     test.setTransitionProba('det', 'nom', .5)
     test.setTransitionProba('nom', 'adj', .2)
@@ -861,8 +908,9 @@ def test2():
     test.setTransitionProba('pro', 'adv', .1)
     test.setTransitionProba('pro', 'pre', .1)
     test.setTransitionProba('adj', 'adj', .2)
-    test.setTransitionProba('adj', 'nom', .4)
-    test.setTransitionProba('adj', 'pre', .5)
+    test.setTransitionProba('adj', 'nom', .6)
+    test.setTransitionProba('adj', 'pre', .1)
+    test.setTransitionProba('adj', 'verbe', .1)
     test.setTransitionProba('pre', 'det', .8)
     test.setTransitionProba('pre', 'nom', .2)
     test.setTransitionProba('verbe', 'verbe', .2)
@@ -970,7 +1018,7 @@ def test5():
 
 def test6():
     """Same as test5 but with a bigger state space and observations values"""
-    test = HMM(range(10), range(50))
+    test = HMM(range(5), range(10))
     test.setRandomProba()
     print 'Original'
     print 'A =', test.A

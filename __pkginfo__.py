@@ -15,9 +15,8 @@
 http://www.logilab.fr/ -- mailto:contact@logilab.fr  
 """
 
-__revision__ = '$Id: __pkginfo__.py,v 1.2 2004-11-07 15:27:04 nico Exp $'
-
 modname = 'hmm'
+distname = 'logilab-hmm'
 
 numversion = [0, 4, 0]
 version = '.'.join([str(num) for num in numversion])
