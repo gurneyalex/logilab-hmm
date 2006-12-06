@@ -3,13 +3,13 @@ Section: python
 Priority: optional
 Maintainer: Alexandre Fayolle <alexandre.fayolle@logilab.fr>
 Uploaders: Alexandre Fayolle <afayolle@debian.org>
-Build-Depends: debhelper (>= 5.0.37.2), python-all-dev (>=2.3.5-7), python-all (>=2.3.5-7), python-central (>=0.5), python-numeric (>=24.2-3)
+Build-Depends: debhelper (>= 5.0.37.2), python-all-dev (>=2.3.5-7), python-all (>=2.3.5-7), python-central (>=0.5), python-numpy-dev (>=1.0rc1-1), gfortran
 XS-Python-Version: all
 Standards-Version: 3.7.2
 
 Package: python-hmm
 Architecture: any
-Depends: ${python:Depends}, python-logilab-common (>= 0.16.1-2)
+Depends: ${python:Depends}, ${shlib:Depends}, python-numpy (>=1.0rc1-1), python-numpy-ext (>=1.0rc1-1), python-logilab-common (>= 0.16.1-2)
 Provides: ${python:Provides}
 XB-Python-Version: ${python:Versions}
 Description: hidden Markov models in  python 

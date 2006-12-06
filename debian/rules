@@ -35,7 +35,7 @@ install-stamp: build $(PYVERS:%=install-stamp-%)
 install-stamp-%: build-stamp-%
 	dh_testdir
 	dh_testroot
-	python$* setup.py -q install --prefix=debian/python-hmm/usr --no-compile
+	python$* setup.py -q build --fcompiler=gnu95 install --prefix=debian/python-hmm/usr --no-compile
 	rm -f debian/python-hmm/usr/lib/python$*/site-packages/logilab/__init__.py
 	touch $@
 
