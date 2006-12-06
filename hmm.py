@@ -352,38 +352,8 @@ class HMM:
         or python-C wrappers. This function is called by init so the
         implementation used depends on the value of use__hmm at the
         time the constructor is called."""
-<<<<<<< /home/ludal/SB/src/logilab/hmm/hmm.py
-        if use__hmm == 1: ## Optimised version
-            self.AlphaScaled = _hmm._hmm_alpha_scaled
-            self.BetaScaled = _hmm._hmm_beta_scaled
-            self.Ksi = _hmm._hmm_ksi
-            self.Clear = _hmm._array_set
-            self.UpdateIterB = _hmm._hmm_update_iter_B
-            self.CorrectM = _hmm._hmm_correctm
-            self.Allclose = _hmm._array_allclose
-            self.NormalizeB = _hmm._hmm_normalize_B
-        elif use__hmm == 2: ## Profiling version
-            self.AlphaScaled = _alpha_scaled_prof
-            self.BetaScaled = _beta_scaled_prof
-            self.Ksi = _ksi_prof
-            self.Clear = _clear_prof
-            self.UpdateIterB = _update_iter_B_prof
-            self.CorrectM = _correctm_prof
-            self.Allclose = _hmm._array_allclose
-            self.NormalizeB = _normalize_B_prof
-        else: ## Default to python version
-            self.AlphaScaled = _alpha_scaled
-            self.BetaScaled = _beta_scaled
-            self.Ksi = _ksi
-            self.Clear = _clear
-            self.UpdateIterB = _update_iter_B
-            self.CorrectM = _correctm
-            self.Allclose = allclose
-            self.NormalizeB = _normalize_B
-=======
         for k, v in HMM_OPTIMIZATIONS.items():
             setattr( self, k, v )
->>>>>>> /tmp/hmm.py~other.zd8GTq
     
         
     def makeIndexes(self):

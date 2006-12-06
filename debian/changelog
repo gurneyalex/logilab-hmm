@@ -1,3 +1,10 @@
+python-hmm (0.5.0-1) unstable; urgency=low
+
+  * new upstream release
+  * moved to numpy
+
+ -- Ludovic Aubry <ludovic.aubry@logilab.fr>  Wed,  6 Dec 2006 17:08:21 +0100
+
 python-hmm (0.4-3) unstable; urgency=low
 
   * Fixed shebang on maintainer scripts
