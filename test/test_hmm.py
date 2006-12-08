@@ -1,14 +1,6 @@
 
 
-from Numeric import array, Float, ones, zeros, cumsum, searchsorted, \
-     argmax, multiarray, reshape, add, allclose, floor, where, \
-     product, sqrt, dot, multiply, alltrue, log, Int,equal,NewAxis, \
-     take, put
-from RandomArray import random
-from sys import stdin,stdout,stderr
-from exceptions import RuntimeError
-import cPickle
-
+from numpy import array
 import logilab.hmm.hmm as hmm
 import unittest
 

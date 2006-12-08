@@ -25,14 +25,15 @@ reduce memory usage"""
 
 __revision__ = "$Id: hmm.py,v 1.15 2005-02-25 20:40:35 nico Exp $"
 
-from Numeric import array, Float, ones, zeros, cumsum, searchsorted, \
-     argmax, multiarray, reshape, add, allclose, floor, where, \
-     product, sqrt, dot, multiply, alltrue, log, Int, equal, NewAxis, \
-     take, put
+from numpy import array, ones, zeros, cumsum, searchsorted, \
+     argmax, reshape, add, allclose, floor, where, \
+     product, sqrt, dot, multiply, alltrue, log, equal, newaxis, \
+     take, put, maximum
 from RandomArray import random
 from exceptions import RuntimeError
 import cPickle
 
+_max = maximum.reduce
 # Display log likelyhood every DISPITER iterations while learning
 DISPITER = 10
 
@@ -64,9 +65,9 @@ try:
 except ImportError:
     pass
 
-#use__hmm = 1
+use__hmm = 0
 
-matrixproduct = multiarray.matrixproduct
+matrixproduct = dot
 
 EPSILON = 1e-9
 SMALLESTFLOAT = 1e-320
@@ -107,12 +108,12 @@ def _alpha_scaled(A, Bo, pi):
     T = len(Bo)
     N = A.shape[0]
     alpha_t = Bo[0] * pi                # (19)
-    scaling_factors = zeros( T, Float )
+    scaling_factors = zeros( T, float )
     scaling_factors[0] = 1./add.reduce(alpha_t)
-    alpha_scaled = zeros( (T, N), Float)
+    alpha_scaled = zeros( (T, N), float)
     alpha_scaled[0] = alpha_t*scaling_factors[0]
     for i in xrange(1, T):
-        alpha_t = matrixproduct(alpha_scaled[i-1], A)*Bo[i]  # (92a)
+        alpha_t = dot(alpha_scaled[i-1], A)*Bo[i]  # (92a)
         scaling_t = 1./add.reduce(alpha_t)
         scaling_factors[i] = scaling_t
         alpha_scaled[i] = alpha_t*scaling_t      # (92b)
@@ -130,12 +131,12 @@ def _beta_scaled( A, Bo, scale_factors ):
     beta_scaled(t,i)=beta(t,i)*C(t) (From the result of _alpha_scaled)
     Bo is the same as in function _alpha
     """
-    T = len(Bo)
-    N = A.shape[0]
+    T,N = Bo.shape
+    assert N == A.shape[0]
     scale_factors = scale_factors
-    beta = zeros( (T, N), Float )
-    tmp = zeros( N, Float )
-    beta[-1] = ones( N, Float ) * scale_factors[-1]         # (24)
+    beta = zeros( (T, N), float )
+    tmp = zeros( N, float )
+    beta[-1] = ones( N, float ) * scale_factors[-1]         # (24)
     for t  in xrange( T-2, -1, -1 ):
         multiply( scale_factors[t], Bo[t+1], tmp )
         multiply( tmp, beta[t+1], tmp )
@@ -151,14 +152,14 @@ def _ksi( A, Bo, alpha, beta ):
     """Compute ksi(t,i,j)=P(q_t=Si,q_(t+1)=Sj|model)"""
     N = A.shape[0]
     T = len(Bo)
-    ksi = zeros( (T-1, N, N), Float )
+    ksi = zeros( (T-1, N, N), float )
     tmp = Bo * beta
     for t in range(T-1):
         # This does transpose[alpha].(B[obs]*beta[t+1])
         # (where . is matrixproduct)
         ksit = ksi[t, :, :]
         multiply( A, tmp[t+1], ksit )
-        multiply( ksit, alpha[t, :, NewAxis], ksit )
+        multiply( ksit, alpha[t, :, newaxis], ksit )
         ksi_sum = add.reduce( ksit.flat )
         ksit /= ksi_sum
     return ksi
@@ -169,14 +170,14 @@ def _ksi_prof( A, Bo, alpha, beta ):
     return _hmm._hmm_ksi( A, Bo, alpha, beta )
 
 def _clear( M ):
-    """Returns a matrix the same size as M and of type Float.
+    """Returns a matrix the same size as M and of type float.
     Could be the same matrix as M or a new one."""
-    return zeros( M.shape, Float )
+    return zeros( M.shape, float )
 
 def _clear_prof( M ):
     """Returns a zeroed matrix the same size and type as M.
     This function is a wrapper around the C function, it actually
-    returns the same reference if M is of type Float."""
+    returns the same reference if M is of type float."""
     return _hmm._array_set( M )
 
 def _update_iter_B( gamma, obsIndices, B_bar ):
@@ -326,19 +327,19 @@ class HMM:
         self.omega_X = state_list
         self.omega_O = observation_list
         if transition_proba is not None:
-            self.A = array( transition_proba, Float )
+            self.A = array( transition_proba, float )
         else:
-            self.A = ones( (self.N, self.N), Float) / self.N
+            self.A = ones( (self.N, self.N), float) / self.N
             
         if observation_proba is not None:
-            self.B = array(observation_proba, Float)
+            self.B = array(observation_proba, float)
         else:
-            self.B = ones( (self.M, self.N), Float) / self.M
+            self.B = ones( (self.M, self.N), float) / self.M
             
         if initial_state_proba is not None:
-            self.pi = array( initial_state_proba, Float )
+            self.pi = array( initial_state_proba, float )
         else:
-            self.pi = ones( (self.N,), Float ) / self.N
+            self.pi = ones( (self.N,), float ) / self.N
 
         # dimensional assertions
         self.checkHMM()
@@ -405,7 +406,7 @@ class HMM:
                 self.makeIndexes()
             self.A = cPickle.load(f)
             self.pi = cPickle.load(f)
-            self.B = zeros( (self.M, self.N), Float )
+            self.B = zeros( (self.M, self.N), float )
             for i in xrange(self.M):
                 self.B[i, :] = cPickle.load(f)
         else:
@@ -487,7 +488,7 @@ class HMM:
     def setRandomTransitionProba(self):
         """set transition probability matrix to some random values"""
         self.A = random( self.A.shape )
-        self.A /= add.reduce( self.A, 1 )[:, NewAxis] # normalization
+        self.A /= add.reduce( self.A, 1 )[:, newaxis] # normalization
 
     def setRandomObservationProba(self):
         """set observation probability matrix to some random values"""
@@ -515,7 +516,7 @@ class HMM:
     def _getObservationIndices( self, observations ):
         """return observation indices"""
 ##        return [self.O_index[o] for o in observations]
-        indices = zeros( len(observations), Int )
+        indices = zeros( len(observations), int )
         k = 0
         for o in observations:
             indices[k] = self.O_index[o]
@@ -526,9 +527,9 @@ class HMM:
         """generates a random sequence of observations of given length
         if show_hidden is true, returns a liste of (state,observation)"""
         cumA = cumsum( self.A, 1 )
-        cumB = cumsum( self.B )
+        cumB = cumsum( self.B, 0 )
         r0 = random()
-        state = searchsorted( cumsum(self.pi), r0)
+        state = searchsorted( cumsum(self.pi,0), r0)
         seq = []
         states = []
         
@@ -554,11 +555,11 @@ class HMM:
         Omega_X = self.omega_X
         obs = self._getObservationIndices(observations)
         # initialisation
-        delta = zeros( N, Float )
-        tmp = zeros( N, Float )
+        delta = zeros( N, float )
+        tmp = zeros( N, float )
         delta = B[obs[0]] * self.pi    # (32a)
-        delta_t = zeros( N, Float )
-        psi = zeros( (T, N), Int )       # (32b)
+        delta_t = zeros( N, float )
+        psi = zeros( (T, N), int )       # (32b)
         # recursion
         for t in xrange(1, T):
             O_t = obs[t]
@@ -590,19 +591,19 @@ class HMM:
         obs = self._getObservationIndices(observations)
         k = equal( A, 0.0 ) * SMALLESTFLOAT
         logA = log( A + k )
-        logB = zeros( (M, N), Float)
+        logB = zeros( (M, N), float)
         for i in xrange(M):
             t = B[i, :]
             k = equal( t, 0.0 ) * SMALLESTFLOAT
             logB[i] = log( k + t )
         # initialisation
-        psi = zeros( N, Float )
-        psi_t = zeros( N, Float )
+        psi = zeros( N, float )
+        psi_t = zeros( N, float )
         logPi = log( self.pi + equal( self.pi, 0.0 ) * SMALLESTFLOAT )
         add( logB[obs[0]], logPi, psi) # (105a)
-        Q = zeros( (T, N), Int )
+        Q = zeros( (T, N), int )
         # recursion
-        tmp = zeros( N, Float )
+        tmp = zeros( N, float )
         for t in xrange( 1, T ):
             O_t = obs[t]
             for j in xrange(N):
@@ -626,7 +627,7 @@ class HMM:
         res = 0
         N = self.N
         M = self.M
-        logB = zeros( (M, N), Float)
+        logB = zeros( (M, N), float)
         for i in xrange(M):
             t = self.B[i, :]
             k = equal(t, 0.0) * SMALLESTFLOAT
@@ -649,7 +650,7 @@ class HMM:
     def _getObservations( self, obsIndices ):
         """Extract the lines of the observations probability matrix corresponding
         to the actual observations."""
-        return take( self.B, obsIndices )
+        return take( self.B, obsIndices, 0 )
 
     def _likelihood( self, scale_factors ):
         """This function computes the log likelihood
@@ -668,11 +669,11 @@ class HMM:
         m_observations = filter( lambda x: x, m_observations )
         K = len( m_observations )
         learning_curve = []
-        sigma_gamma_A = zeros( (self.N, ), Float )
-        sigma_gamma_B = zeros( (self.N, ), Float )
-        A_bar  = zeros( (self.N, self.N), Float )
-        B_bar  = zeros( (self.M, self.N), Float )
-        pi_bar = zeros( self.N, Float )
+        sigma_gamma_A = zeros( (self.N, ), float )
+        sigma_gamma_B = zeros( (self.N, ), float )
+        A_bar  = zeros( (self.N, self.N), float )
+        B_bar  = zeros( (self.M, self.N), float )
+        pi_bar = zeros( self.N, float )
         if DISPITER == 0:
             dispiter = maxiter
         else:
@@ -686,7 +687,7 @@ class HMM:
             total_likelihood = 0
             for k in range(K):
                 obsIndices = obs_list[k]
-                Bo = take(self.B, obsIndices)
+                Bo = take(self.B, obsIndices, 0)
                 alpha, scale_factors = self.AlphaScaled( self.A, Bo, self.pi )
                 beta  = self.BetaScaled( self.A, Bo, scale_factors )
                 ksi   = self.Ksi( self.A, Bo, alpha, beta )
@@ -736,7 +737,7 @@ class HMM:
             dispiter = maxiter
         else:
             dispiter = DISPITER
-        Bo = take( B, obsIndices )
+        Bo = take( B, obsIndices, 0 )
         for iter in xrange( 1, maxiter + 1 ):
             alpha, scale_factors = self.AlphaScaled( A, Bo, pi )
             beta = self.BetaScaled( self.A, Bo, scale_factors )
@@ -786,7 +787,7 @@ class HMM:
         # it doesn't matter if it is one or anything else since
         # sigma_gamma(i)=0 implies A(i,:)=0 and B(i,:)=0
         sigma_gamma_A = 1. / where( sigma_gamma_A, sigma_gamma_A, 1 )
-        A_bar *= sigma_gamma_A[:, NewAxis]    # (109)
+        A_bar *= sigma_gamma_A[:, newaxis]    # (109)
 
 
     def _final_step( self, gamma, ksi, obsIndices ):
@@ -797,10 +798,10 @@ class HMM:
 
         ## Compute new A
         A_bar  = add.reduce(ksi)
-        A_bar /= sigma_gamma[:, NewAxis] # (40b)
+        A_bar /= sigma_gamma[:, newaxis] # (40b)
         
         ## Compute new B
-        B_bar = zeros( (self.M, self.N), Float )
+        B_bar = zeros( (self.M, self.N), float )
         for i in xrange( len(obsIndices) - 1 ):
             B_bar[obsIndices[i]] += gamma[i]
         B_bar /= sigma_gamma
@@ -820,7 +821,7 @@ class HMM:
     
     def _gamma(self, alpha, beta, scaling_factors ):
         """Compute gamma(t,i)=P(q_t=Si|model)"""
-        g = alpha * beta / scaling_factors[:, NewAxis]
+        g = alpha * beta / scaling_factors[:, newaxis]
         return g
 
 
@@ -945,7 +946,7 @@ def test3():
     else:
         print "There was significant differences between the results from C and python"
         print r1_opt - r1
-    print "Maximum difference was:", max(max(abs(r1_opt - r1)))
+    print "Maximum difference was:", _max(_max(abs(r1_opt - r1)))
     print "Beta"
     print r2
     if  (allclose(r2_opt, r2)):
@@ -953,7 +954,7 @@ def test3():
     else:
         print "There was significant differences between the results from C and python"
         print r2_opt - r2
-    print "Maximum difference was:", max(max(abs(r2_opt - r2)))
+    print "Maximum difference was:", _max(_max(abs(r2_opt - r2)))
     
 def test4():
     """A simple simulation test"""
