@@ -2,7 +2,7 @@ Source: python-hmm
 Section: python
 Priority: optional
 Maintainer: Alexandre Fayolle <alexandre.fayolle@logilab.fr>
-Uploaders: Alexandre Fayolle <afayolle@debian.org>
+Uploaders: Alexandre Fayolle <afayolle@debian.org>, Ludovic Aubry <ludovic.aubry@logilab.fr>
 Build-Depends: debhelper (>= 5.0.37.2), python-all-dev (>=2.3.5-7), python-all (>=2.3.5-7), python-central (>=0.5), python-numpy-dev (>=1.0rc1-1), gfortran
 XS-Python-Version: all
 Standards-Version: 3.7.2

@@ -5,7 +5,7 @@
 # Uncomment this to turn on verbose mode.
 #export DH_VERBOSE=1
 
-PYVERS:=$(shell pyversions -v -rdebian/control)
+PYVERS:=$(shell pyversions -v -r debian/control)
 
 build: build-stamp
 build-stamp: $(PYVERS:%=build-stamp-%)
@@ -13,13 +13,13 @@ build-stamp: $(PYVERS:%=build-stamp-%)
 
 build-stamp-%:
 	dh_testdir
-	python$* setup.py -q build
+	python$* setup.py build
 	touch $@
 
 clean: 
 	dh_testdir
 	dh_testroot
-	rm -f build-stamp* install-stamp* 
+	rm -f build-stamp* install-stamp* *.pyc
 	rm -rf build
 	dh_clean
 
@@ -35,7 +35,7 @@ install-stamp: build $(PYVERS:%=install-stamp-%)
 install-stamp-%: build-stamp-%
 	dh_testdir
 	dh_testroot
-	python$* setup.py -q build --fcompiler=gnu95 install --prefix=debian/python-hmm/usr --no-compile
+	python$* setup.py install --prefix=debian/python-hmm/usr --no-compile
 	rm -f debian/python-hmm/usr/lib/python$*/site-packages/logilab/__init__.py
 	touch $@
 
