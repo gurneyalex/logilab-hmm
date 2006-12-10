@@ -24,6 +24,11 @@
 #define STRIDE(A,n) (A->strides[n]/sizeof(double))
 #define STRIDE_LONG(A,n) (A->strides[n]/sizeof(long))
 
+#ifdef B0
+/* On MacOS at least, termios.h is included by Python.h and defines B0 to be 0 */
+#undef B0
+#endif
+
 DL_EXPORT(void) init_hmm(void);
 
 const char* __revision__ = "$Id: _hmm.c,v 1.5 2003-10-13 15:41:04 ludal Exp $";
