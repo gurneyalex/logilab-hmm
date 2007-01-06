@@ -6,4 +6,4 @@ from hmm import HMM
 import 
 
 class CHMM(HMM):
-    
+    "CHMM"
