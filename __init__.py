@@ -16,3 +16,17 @@ http://www.logilab.fr/ -- mailto:contact@logilab.fr
 """
 
 __revision__ = "$Id: __init__.py,v 1.4 2004-11-07 15:27:04 nico Exp $"
+
+import hmm
+HMM = hmm.HMM
+try:
+    import hmmc
+    HMM = hmmc.HMM_C
+except ImportError:
+    pass
+
+try:
+    import hmmf
+    HMM = hmmf.HMM_F
+except ImportError:
+    pass

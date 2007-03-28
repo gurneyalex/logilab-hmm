@@ -19,7 +19,7 @@
 #include <Python.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include "Numeric/arrayobject.h"
+#include "numpy/arrayobject.h"
 
 #define STRIDE(A,n) (A->strides[n]/sizeof(double))
 #define STRIDE_LONG(A,n) (A->strides[n]/sizeof(long))
@@ -29,7 +29,7 @@
 #undef B0
 #endif
 
-DL_EXPORT(void) init_hmm(void);
+DL_EXPORT(void) init_hmm_c(void);
 
 const char* __revision__ = "$Id: _hmm.c,v 1.5 2003-10-13 15:41:04 ludal Exp $";
 
@@ -64,7 +64,8 @@ static PyArrayObject* check_square( PyObject* oA, long* N, char* name )
 	goto err;
     }
     if (A->dimensions[0]!=A->dimensions[1]) {
-	throwexcept("Array %s must be square, it is %dx%d", name, A->dimensions[0],A->dimensions[1]);
+	throwexcept("Array %s must be square, it is %dx%d", name, A->dimensions[0],
+		    A->dimensions[1]);
 	goto err;
     }
     if (A->dimensions[0]==0) {
@@ -84,8 +85,10 @@ static PyArrayObject* check_second_dim( PyObject* oB, long *T, long N, char* nam
 { 
     PyArrayObject *B;
     B = (PyArrayObject*)PyArray_ContiguousFromObject(oB,PyArray_DOUBLE,2,2);
-    if (B==NULL || B->dimensions[1]!=N || B->dimensions[1]==0 || B->dimensions[0]==0) {
-	throwexcept("Array %s, must be two-dimensionnal, of type float, and have matching dimension with A",name);
+    if (B==NULL || B->dimensions[1]!=N
+	|| B->dimensions[1]==0 || B->dimensions[0]==0) {
+	throwexcept("Array %s, must be two-dimensionnal, of type float, and "\
+		    "have matching dimension with A",name);
 	goto err;
     }
     *T = B->dimensions[0];
@@ -120,7 +123,8 @@ static PyArrayObject* check_one_dim( PyObject* oPI, long N, char* name )
     PyArrayObject *PI;
     PI = (PyArrayObject*)PyArray_ContiguousFromObject(oPI,PyArray_DOUBLE,1,1);
     if (PI==NULL || PI->dimensions[0]!=N) {
-	throwexcept("Array %s, must be one-dimensionnal, of type float, and have matching dimension with A",name);
+	throwexcept("Array %s, must be one-dimensionnal, of type float, and " \
+		    "have matching dimension with A",name);
 	goto err;
     }
     return PI;
@@ -136,7 +140,8 @@ static PyArrayObject* check_long_one_dim( PyObject* oPI, long N, char* name )
     PyArrayObject *PI;
     PI = (PyArrayObject*)PyArray_ContiguousFromObject(oPI,PyArray_LONG,1,1);
     if (PI==NULL || PI->dimensions[0]!=N) {
-	throwexcept("Array %s, must be one-dimensionnal, of type float, and have matching dimension with A",name);
+	throwexcept("Array %s, must be one-dimensionnal, of type float, and "\
+		    "have matching dimension with A",name);
 	goto err;
     }
     return PI;
@@ -788,12 +793,13 @@ static PyMethodDef HmmMethods[] = {
 };
 
 DL_EXPORT(void)
-init_hmm()
+init_hmm_c()
 {
     PyObject* hmm_module;
     
-    hmm_module = Py_InitModule3("_hmm", HmmMethods, "This module contains helper functions for the hmm python module");
-    PyModule_AddStringConstant(hmm_module,"__revision__",__revision__);
-   
+    hmm_module = Py_InitModule3("_hmm_c", HmmMethods,
+				"This module contains helper functions for "\
+				"the hmm python module");
+    PyModule_AddStringConstant(hmm_module,"__revision__",__revision__);   
     import_array();
 }
