@@ -45,11 +45,13 @@ subpackage_of = 'logilab'
 
 try:
     from numpy.distutils.extension import Extension
-    ext_modules = [Extension('logilab.hmm._hmm_for', ['_hmmf.f90'],
-                             libraries=['gfortran']),
-                   Extension('logilab.hmm._hmm_c', ['_hmm.c'],
-                             libraries=['m']),
-                   ]
+    from numpy.distutils.misc_util import Configuration
+    fmod = Extension('logilab.hmm._hmmf',
+                     ['_hmmf.pyf', '_hmmf.f90'],
+                     libraries=['gfortran'])
+    cmod = Extension('logilab.hmm._hmm_c', ['_hmm.c'],
+                     libraries=['m'])
+    ext_modules = [ fmod, cmod ]
 except:
     pass
     

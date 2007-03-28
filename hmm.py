@@ -37,35 +37,6 @@ _max = maximum.reduce
 # Display log likelyhood every DISPITER iterations while learning
 DISPITER = 10
 
-# Force this to zero before calling HMM constructor if you want to
-# use the python implementation of (alpha,beta,ksi...)
-# Allowable values for use_hmm:
-#  0 : use the python defined functions
-#  1 : use the C optimized functions (deprecated)
-#  2 : use the python wrapper for the C functions (for profiling purposes)
-#  3 : use the fortran optimized functions
-_hmm = None
-hmm_ops = None
-
-try:
-    import _hmm
-    use__hmm = 1
-except ImportError:
-    use__hmm = 0
-
-try:
-    import logilab.hmm._hmm as _hmm
-    use__hmm = 1
-except ImportError:
-    use__hmm = 0
-
-try:
-    import hmm_ops
-    use__hmm = 3
-except ImportError:
-    pass
-
-use__hmm = 0
 
 matrixproduct = dot
 
@@ -119,10 +90,6 @@ def _alpha_scaled(A, Bo, pi):
         alpha_scaled[i] = alpha_t*scaling_t      # (92b)
     return alpha_scaled, scaling_factors
 
-def _alpha_scaled_prof(A, Bo, pi):
-    """See _alpha_scaled. This is a wrapper for the C version
-    of the function."""
-    return _hmm._hmm_alpha_scaled( A, Bo, pi )
 
 def _beta_scaled( A, Bo, scale_factors ):
     """Computes backward probabilities
@@ -143,10 +110,6 @@ def _beta_scaled( A, Bo, scale_factors ):
         beta[t] = matrixproduct( A, tmp )    # (25)
     return beta
 
-def _beta_scaled_prof( A, Bo, scale_factors ):
-    """See _beta_scaled. This is a wrapper for the C version
-    of the function."""
-    return _hmm._hmm_beta_scaled( A, Bo, scale_factors )
 
 def _ksi( A, Bo, alpha, beta ):
     """Compute ksi(t,i,j)=P(q_t=Si,q_(t+1)=Sj|model)"""
@@ -164,21 +127,12 @@ def _ksi( A, Bo, alpha, beta ):
         ksit /= ksi_sum
     return ksi
 
-def _ksi_prof( A, Bo, alpha, beta ):
-    """See _ksi. This is a wrapper for the C version
-    of the function."""
-    return _hmm._hmm_ksi( A, Bo, alpha, beta )
 
 def _clear( M ):
     """Returns a matrix the same size as M and of type float.
     Could be the same matrix as M or a new one."""
     return zeros( M.shape, float )
 
-def _clear_prof( M ):
-    """Returns a zeroed matrix the same size and type as M.
-    This function is a wrapper around the C function, it actually
-    returns the same reference if M is of type float."""
-    return _hmm._array_set( M )
 
 def _update_iter_B( gamma, obsIndices, B_bar ):
     """Updates the estimation of the observations probabilities.
@@ -193,10 +147,6 @@ def _update_iter_B( gamma, obsIndices, B_bar ):
     for i in xrange(len(obsIndices)):     # (110) numerateur
         B_bar[obsIndices[i]] += gamma[i]
 
-def _update_iter_B_prof( gamma, obsIndices, B_bar ):
-    """See _update_iter_B. This function is a wqrapper for the
-    C version of _update_iter_B."""
-    _hmm._hmm_update_iter_B( gamma, obsIndices, B_bar )
 
 
 def _correctm( M, k, p ):
@@ -225,8 +175,6 @@ def _correctm( M, k, p ):
         raise "Not Implemented"
     return M
 
-def _correctm_prof( M, k, v ):
-    return _hmm._hmm_correctm( M, k, v )
 
 def _normalize_B( B_bar, sigma_gamma_B ):
     """Internal function.
@@ -234,65 +182,6 @@ def _normalize_B( B_bar, sigma_gamma_B ):
     Make sure we get rid of lines that contains only zeroes."""
     sigma_gamma_B = 1./where( sigma_gamma_B, sigma_gamma_B, 1)
     B_bar *= sigma_gamma_B    # (110)
-
-def _normalize_B_prof( B_bar, sigma_gamma_B ):
-    _hmm._hmm_normalize_B( B_bar, sigma_gamma_B )
-
-if use__hmm == 0:
-    ## Default python
-    HMM_OPTIMIZATIONS = { "AlphaScaled" : _alpha_scaled,
-                          "BetaScaled" : _beta_scaled,
-                          "Ksi" : _ksi,
-                          "Clear" : _clear,
-                          "UpdateIterB" : _update_iter_B,
-                          "CorrectM" : _correctm,
-                          "Allclose" : allclose,
-                          "NormalizeB" : _normalize_B,
-                          }
-elif use__hmm == 1:
-    ## Optimised version
-    HMM_OPTIMIZATIONS = { "AlphaScaled" : _hmm._hmm_alpha_scaled,
-                          "BetaScaled" : _hmm._hmm_beta_scaled,
-                          "Ksi" : _hmm._hmm_ksi,
-                          "Clear" : _hmm._array_set,
-                          "UpdateIterB" : _hmm._hmm_update_iter_B,
-                          "CorrectM" : _hmm._hmm_correctm,
-                          "Allclose" : _hmm._array_allclose,
-                          "NormalizeB" : _hmm._hmm_normalize_B,
-                          }
-elif use__hmm == 2:
-    ## Profiling version
-    HMM_OPTIMIZATIONS = { "AlphaScaled" : _alpha_scaled_prof,
-                          "BetaScaled" : _beta_scaled_prof,
-                          "Ksi" : _ksi_prof            ,
-                          "Clear" : _clear_prof,
-                          "UpdateIterB" : _update_iter_B_prof,
-                          "CorrectM" : _correctm_prof,
-                          "Allclose" : _hmm._array_allclose,
-                          "NormalizeB" : _normalize_B_prof,
-                          }
-elif use__hmm == 3:
-    ## Fortran version
-    HMM_OPTIMIZATIONS = { "AlphaScaled" : hmm_ops.hmm_ops.alpha_scaled,
-                          "BetaScaled" : hmm_ops.hmm_ops.beta_scaled,
-                          "Ksi" : hmm_ops.hmm_ops.hmm_ksi,
-                          "Clear" : _clear,
-                          "UpdateIterB" : hmm_ops.hmm_ops.update_iter_b,
-                          "CorrectM" : hmm_ops.hmm_ops.correctm,
-                          "Allclose" : allclose,
-                          "NormalizeB" : hmm_ops.hmm_ops.normalize_b,
-                          }
-
-    HMM_OPTIMIZATIONS = { "AlphaScaled" : _hmm._hmm_alpha_scaled,
-                          "BetaScaled" : hmm_ops.hmm_ops.beta_scaled,
-                          "Ksi" : _hmm._hmm_ksi,
-                          "Clear" : _hmm._array_set,
-                          "UpdateIterB" : _hmm._hmm_update_iter_B,
-                          "CorrectM" : _hmm._hmm_correctm,
-                          "Allclose" : _hmm._array_allclose,
-                          "NormalizeB" : _hmm._hmm_normalize_B,
-                          }
-
 
 
 ## ----------------------------------------------------------------------
@@ -309,6 +198,13 @@ class HMM:
     Comments in the source code mentionning a number are references to
     equations in the algorithm descriptions of that paper."""
 
+    AlphaScaled = _alpha_scaled
+    BetaScaled = _beta_scaled
+    Ksi = _ksi
+    UpdateIterB = _update_iter_B
+    CorrectM = _correctm
+    NormalizeB = _normalize_B
+    
     def __init__(self, state_list, observation_list,
                  transition_proba = None,
                  observation_proba = None,
@@ -344,18 +240,6 @@ class HMM:
         # dimensional assertions
         self.checkHMM()
         self.makeIndexes()
-        self.makeFuncObjects()
-
-    def makeFuncObjects(self):
-        """This methods defines function references according
-        to the global variable use__hmm. Depending on its value
-        the function references point to the python, C-implementation
-        or python-C wrappers. This function is called by init so the
-        implementation used depends on the value of use__hmm at the
-        time the constructor is called."""
-        for k, v in HMM_OPTIMIZATIONS.items():
-            setattr( self, k, v )
-    
         
     def makeIndexes(self):
         """Creates the reverse table that maps states/observations names
@@ -714,11 +598,11 @@ class HMM:
             self.A, A_bar   = A_bar, self.A
             self.B, B_bar   = B_bar, self.B
             self.pi, pi_bar = pi_bar, self.pi
-            A_bar = self.Clear( A_bar )
-            B_bar = self.Clear( B_bar )
-            pi_bar = self.Clear( pi_bar )
-            sigma_gamma_A = self.Clear( sigma_gamma_A )
-            sigma_gamma_B = self.Clear( sigma_gamma_B )
+            A_bar[...] = 0
+            B_bar[...] = 0
+            pi_bar[...] = 0
+            sigma_gamma_A[...] = 0
+            sigma_gamma_B[...] = 0
         else:
             print "The Baum-Welch algorithm had not converged in %d iterations" % maxiter
         return iter, learning_curve
@@ -815,9 +699,9 @@ class HMM:
         """Returns true if the difference between the estimated model
         and the current model is small enough that we can stop the
         learning process"""
-        return (self.Allclose( self.A, A_bar, alpha_RTOL, alpha_ATOL) and 
-               self.Allclose( self.pi, pi_bar, alpha_RTOL, alpha_ATOL) and 
-               self.Allclose( self.B, B_bar, beta_RTOL, beta_ATOL))
+        return (allclose( self.A, A_bar, alpha_RTOL, alpha_ATOL) and 
+               allclose( self.pi, pi_bar, alpha_RTOL, alpha_ATOL) and 
+               allclose( self.B, B_bar, beta_RTOL, beta_ATOL))
     
     def _gamma(self, alpha, beta, scaling_factors ):
         """Compute gamma(t,i)=P(q_t=Si|model)"""
@@ -825,301 +709,4 @@ class HMM:
         return g
 
 
-def test1_analyze( h, chain ):
-    """simple test"""
-    print "Chain      : ", chain
-    print "analyse    : ", h.analyze(chain)
-    print "analyse_log: ", h.analyze_log(chain)
-    
-def test1():
-    """Simple test, that will check if the viterbi algorithm
-    correctly determine the hidden states of a HMM."""
-    test = HMM(['a', 'b'], ['s1', 's2', 's3'],
-               array([[.3, .7], [.5, .5]]),
-               array([[.5, 0], [.5, .5], [0, .5]]),
-               array([.9, .1]))
-    test.dump()
-    test1_analyze(test, ['s1'] * 3)
-    test1_analyze(test, ['s1'] * 3 + ['s3'] * 3)
-    test1_analyze(test, ['s1', 's2', 's3'] * 3)
-
-    test.setRandomProba()
-    test.dump()
-    test1_analyze(test, ['s1'] * 3)
-    test1_analyze(test, ['s1'] * 3 + ['s3'] * 3)
-    test1_analyze(test, ['s1', 's2', 's3'] * 3)
-
-def test2():
-    """This test will display the computed likelyhood of some sentences given
-    some predetermined transition and observation matrices"""
-    nom = 'soleil ville parc chat chien jaune souris poule jardin bec griffe sel poulet poivre'.split()
-    verbe = 'brillait mange chasse court dort griffe est ressemble'.split()
-    adj = 'grand petit gentil endormi jaune grande petite gentille endormie'.split()
-    adv = 'vigoureusement rapidement vite'.split()
-    det = 'le la les un une des'.split()
-    pro = 'je tu il elle on nous vous ils elles le la les lui moi toi eux'.split()
-    pre = 'à pour sur sous près de du au avec sans'.split()
-    univers = []
-    for mot in nom + verbe + adj + adv + det + pro + pre:
-        univers.append(mot)
-    test = HMM(['adj', 'nom', 'verbe', 'adv', 'det', 'pro', 'pre'], univers)
-    test.A[:,:] = 0.0 # clear transition proba
-    test.setTransitionProba('det', 'adj', .5)
-    test.setTransitionProba('det', 'nom', .5)
-    test.setTransitionProba('nom', 'adj', .2)
-    test.setTransitionProba('nom', 'verbe', .2)
-    test.setTransitionProba('nom', 'nom', .2)
-    test.setTransitionProba('nom', 'pro', .2)
-    test.setTransitionProba('nom', 'adv', .1)
-    test.setTransitionProba('nom', 'pre', .1)
-    test.setTransitionProba('pro', 'adj', .2)
-    test.setTransitionProba('pro', 'verbe', .2)
-    test.setTransitionProba('pro', 'nom', .2)
-    test.setTransitionProba('pro', 'pro', .2)
-    test.setTransitionProba('pro', 'adv', .1)
-    test.setTransitionProba('pro', 'pre', .1)
-    test.setTransitionProba('adj', 'adj', .2)
-    test.setTransitionProba('adj', 'nom', .6)
-    test.setTransitionProba('adj', 'pre', .1)
-    test.setTransitionProba('adj', 'verbe', .1)
-    test.setTransitionProba('pre', 'det', .8)
-    test.setTransitionProba('pre', 'nom', .2)
-    test.setTransitionProba('verbe', 'verbe', .2)
-    test.setTransitionProba('verbe', 'adv', .2)
-    test.setTransitionProba('verbe', 'det', .3)
-    test.setTransitionProba('verbe', 'pre', .3)
-    test.setTransitionProba('adv', 'pre', .3)
-    test.setTransitionProba('adv', 'verbe', .4)
-    test.setTransitionProba('adv', 'det', .3)
-    test.checkHMM()
-    for liste, state in [ (nom, 'nom'), (verbe, 'verbe'), (adj, 'adj'),
-                          (adv, 'adv'), (det, 'det'), (pro, 'pro'),
-                          (pre, 'pre')]:
-        taille = len(liste)
-        proba = 1.0 / taille
-        for mot in liste:
-            test.setObservationProba(state, mot, proba)
-        test.setInitialProba(state, 1. / 7)
-
-    phrases = ('un grand soleil jaune brillait vigoureusement sur la ville endormie',
-               'le petit chat mange des souris',
-               'je mange du poulet au poivre sans sel',
-               )
-               
-    for p in phrases:
-        p = p.split()
-        a = test.analyze(p)
-        for i in range(len(p)):
-            p[i] = (p[i], a[i])
-        print p
-
-
-def test3():
-    """This test compares the results of some of the C and Python functions
-    used by the algorithm, with the assumption that the C and Python functions
-    should return the same results"""
-    nom = 'soleil ville parc chat chien jaune souris poule jardin bec griffe sel poulet poivre'.split()
-    verbe = 'brillait mange chasse court dort griffe est ressemble'.split()
-    adj = 'grand petit gentil endormi jaune grande petite gentille endormie'.split()
-    adv = 'vigoureusement rapidement vite'.split()
-    det = 'le la les un une des'.split()
-    pro = 'je tu il elle on nous vous ils elles le la les lui moi toi eux'.split()
-    pre = 'à pour sur sous près de du au avec sans'.split()
-    univers = []
-    for mot in nom + verbe + adj + adv + det + pro + pre:
-        univers.append(mot)
-    test = HMM(['adj', 'nom', 'verbe', 'adv', 'det', 'pro', 'pre'], univers)
-
-    test.setRandomProba()
-
-    Obs = test._getObservationIndices('le petit chat mange des souris'.split())
-    Bo = test._getObservations(Obs)
-    r1, scale = _alpha_scaled(test.A, Bo, test.pi)
-    r1_opt, scale_opt = _alpha_scaled_prof(test.A, Bo, test.pi)
-    r2 = _beta_scaled(test.A, Bo, scale)
-    r2_opt = _beta_scaled_prof(test.A, Bo, scale_opt)
-
-    print "Alpha"
-    print r1
-    if  (allclose(r1_opt, r1)):
-        print "Python and C algorithms returned the same results"
-    else:
-        print "There was significant differences between the results from C and python"
-        print r1_opt - r1
-    print "Maximum difference was:", _max(_max(abs(r1_opt - r1)))
-    print "Beta"
-    print r2
-    if  (allclose(r2_opt, r2)):
-        print "Python and C algorithms returned the same results"
-    else:
-        print "There was significant differences between the results from C and python"
-        print r2_opt - r2
-    print "Maximum difference was:", _max(_max(abs(r2_opt - r2)))
-    
-def test4():
-    """A simple simulation test"""
-    test = HMM(['a', 'b'], ['s1', 's2', 's3'],
-               array([[.3, .7], [.5, .5]]),
-               array([[.5, 0], [.5, .5], [0, .5]]),
-               array([.9, .1]))
-    test.dump()
-    print test.simulate(10)
-    print test.simulate(10, 1)
-
-def test5():
-    """Train a model over some simulated values from an initial
-    model"""
-    test = HMM(['a', 'b'], ['s1', 's2', 's3'])
-    test.setRandomProba()
-    print 'Original'
-    print 'A =', test.A
-    print 'B =', test.B
-    print 'pi =', test.pi
-    print
-    print 'Generating sample data...'
-    sample =  test.simulate(500)
-    print 'Randomizing model...'
-    test.setRandomProba()
-    print 'Training model...'
-    test.learn(sample, None, 3000)
-    print 'trained values'
-    print 'A =', test.A
-    print 'B =', test.B
-    print 'pi =', test.pi
-
-def test6():
-    """Same as test5 but with a bigger state space and observations values"""
-    test = HMM(range(5), range(10))
-    test.setRandomProba()
-    print 'Original'
-    print 'A =', test.A
-    print 'B =', test.B
-    print 'pi =', test.pi
-    print
-    print 'Generating sample data...'
-    sample = test.simulate(10000)
-    print 'Randomizing model...'
-    test.setRandomProba()
-    print 'Training model...'
-    test.learn(sample, None, 10000)
-    print 'trained values'
-    print 'A =', test.A
-    print 'B =', test.B
-    print 'pi=', test.pi
-
-def test7():
-    """Tests saving and loading a MC"""
-    test = HMM(range(3), range(5))
-    f = open('/tmp/hmm_pickle', 'w')
-    test.saveHMM(f, 1)
-    f.close()
-    f = open('/tmp/hmm_pickle')
-    test2 = HMM([], [])
-    test2.loadHMM(f)
-    print test2.omega_X, test2.omega_O
-    print test2.A
-    print test2.B
-    print test2.pi
-    
-def test8():
-    """Same as test6 but learning over several observations from
-    the same chain"""
-    test = HMM(range(10), range(50))
-    print 'Generating sample data...'
-    l = []
-    test.setRandomProba()
-    for i in range(100):
-        obs = test.simulate(100)
-        l.append(obs)
-    print 'Original'
-    print 'A =', test.A
-    print 'B =', test.B
-    print 'pi =', test.pi
-    print
-    print 'Randomizing model...'
-    test.setRandomProba()
-    print 'Training model...'
-    test.multiple_learn(l)
-    print 'trained values'
-    print 'A =', test.A
-    print 'B =', test.B
-    print 'pi =', test.pi
-
-
-def deterministic_hmm():
-    """Returns the matrices of a deterministic HMM"""
-    test = HMM( ['a', 'b'], ['s1', 's2', 's3'],
-                [[0.0, 1.0], [1.0, 0.0]],
-                [[0.8, 0.0], [0.0, 0.8], [0.2, 0.2]], [0.7, 0.3])
-    return test
-
-def norm2(m):
-    """Returns the norm2 of a matrix"""
-    v = reshape(m, (product(m.shape), ))
-    return sqrt(dot(v, v)) / product(m.shape)
-
-def test9_errors(gene, test):
-    """Compute an error (distance) between two chains"""
-    error1 = norm2(gene.A - test.A)
-    error2 = norm2(gene.B - test.B)
-    error2bis = norm2(gene.B - test.B[:, ::-1])
-    if error2 < error2bis:
-        error3 = norm2( gene.pi - test.pi )
-    else:
-        error2 = error2bis
-        error3 = norm2( gene.pi - test.pi[::-1] )
-    return error1, error2, error3
-
-def test9_display(errors):
-    """Displays the computed errors"""
-    for t in errors:
-        print "Test ", t[0], "Iterations:", t[1], "ErrA:", t[2], "ErrB", t[3],
-        print "ErrPi", t[4], "Avg time: ", t[6]
-    
-def test9(n=10):
-    """This test generate a simple HMM (determinist state transitions)
-    And check if the algoritm converge in less than 1000 iterations"""
-    gene = deterministic_hmm()
-    data = gene.simulate(500)
-    test = HMM(['a', 'b'], ['s1', 's2', 's3'])
-    errors = []
-    from time import time
-    for i in xrange(n):
-        t1 = time()
-        iteration, curve = test.learn(data)
-        t2 = time()
-        error1, error2, error3 = test9_errors( gene, test )
-        print "A: ", test.A
-        print "B: ", test.B
-        errors.append([i, iteration, error1, error2, error3,
-                       curve, (t2 - t1) / iteration])
-        test.setRandomProba()
-    test9_display(errors)
-    return errors
-
-def test10(n=10):
-    """This test generate a simple HMM (determinist state transitions)
-    And check if the algoritm converge in less than 1000 iterations"""
-    gene = deterministic_hmm()
-    print "Generating data..."
-    data = [ gene.simulate(20) for i in range(100) ]
-    test = HMM(['a', 'b'], ['s1', 's2', 's3'])
-    errors = []
-    for i in xrange(n):
-        print "round ", i
-        iteration, curve = test.multiple_learn(data)
-        error1, error2, error3 = test9_errors( gene, test )
-        print "A: ", test.A
-        print "B: ", test.B
-        print "Pi:", test.pi
-        errors.append([i, iteration, error1, error2, error3, curve, 0])
-        test.setRandomProba()
-    test9_display(errors)
-    return errors, test
-    
-if __name__ == '__main__':
-    for test_num in range(1, 11):
-        print '-' * 80
-        print 'start test', test_num
-        globals()['test%s' % test_num]()
 

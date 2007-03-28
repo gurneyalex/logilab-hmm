@@ -1,4 +1,4 @@
-MODULE hmm_ops
+MODULE hmm_for
   IMPLICIT NONE
     CONTAINS
 
@@ -139,5 +139,5 @@ MODULE hmm_ops
            END DO
         END DO
       END SUBROUTINE NORMALIZE_B
-   END MODULE Hmm_ops
+   END MODULE hmm_for
 
