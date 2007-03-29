@@ -587,13 +587,13 @@ class HMM:
             self.A, A_bar   = A_bar, self.A
             self.B, B_bar   = B_bar, self.B
             self.pi, pi_bar = pi_bar, self.pi
-            A_bar[...] = 0
-            B_bar[...] = 0
-            pi_bar[...] = 0
-            sigma_gamma_A[...] = 0
-            sigma_gamma_B[...] = 0
+            A_bar.fill(0)
+            B_bar.fill(0)
+            pi_bar.fill(0)
+            sigma_gamma_A.fill(0)
+            sigma_gamma_B.fill(0)
         else:
-            print "The Baum-Welch algorithm had not converged in %d iterations" % maxiter
+            print "The Baum-Welch algorithm did not converge in %d iterations" % maxiter
         return iter, learning_curve
 
     def _baumWelch( self, obsIndices, maxiter ):
@@ -630,15 +630,6 @@ class HMM:
         else:
             print "The Baum-Welsh algorithm did not converge in %d iterations" % maxiter
         return iter, learning_curve
-
-    def _update_iter( self,
-                      gamma, ksi, obsIndices,
-                      sigma_gamma_A, sigma_gamma_B,
-                      A_bar, B_bar, pi_bar ):
-        """Internal function.
-        Make an update to the current estimation of the matrices A,B,pi.
-        The matrices are not normalized, and we keep track of normalization
-        factors in sigma_gamma_[AB]. The matrices are updated in-place."""
 
     def _update_iter_gamma( self, gamma, sigma_gamma_A, sigma_gamma_B ):
         """update iter gamma"""
