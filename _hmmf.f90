@@ -45,8 +45,6 @@ MODULE hmm_for
         DOUBLE PRECISION, INTENT(IN), DIMENSION(T) :: S
         DOUBLE PRECISION, DIMENSION(N) :: tmp
         INTEGER :: I
-
-        PRINT *, "BETA_SCALED N=", N, "T=", T
         
         R(T,1:N) = S(T)
 
@@ -66,7 +64,7 @@ MODULE hmm_for
         INTEGER :: I, J, K
         DOUBLE PRECISION :: SUM
 
-        PRINT *, "HMM_KSI N=", N, "T=", T
+!        PRINT *, "HMM_KSI N=", N, "T=", T
 
         DO I=1,T-1
            SUM = 0.0
@@ -92,7 +90,7 @@ MODULE hmm_for
         INTEGER, INTENT(IN), DIMENSION(T) :: OBS
         INTEGER :: I
 
-        PRINT *, "UPDATE_ITER_B N=", N, "T=", T, "M=", M
+!        PRINT *, "UPDATE_ITER_B N=", N, "T=", T, "M=", M
 
         DO I=1, T
            B_bar( OBS(I), : ) = B_bar( OBS(I), : ) + G(I, : )
@@ -100,20 +98,25 @@ MODULE hmm_for
 
       END SUBROUTINE UPDATE_ITER_B
 
-      SUBROUTINE CORRECTM( G, V, M, N )
-        INTEGER :: M, N, I
+      SUBROUTINE CORRECTM( G, IDX, V, M, N )
+        INTEGER :: M, N, I, IDX
         DOUBLE PRECISION :: V
         DOUBLE PRECISION :: S
         DOUBLE PRECISION, INTENT(INOUT), DIMENSION(M,N) :: G
 
-        PRINT *, "CORRECTM N=", N, "M=", M
+!        PRINT *, "CORRECTM N=", N, "M=", M
 
-
-        DO I=1,M
-           S = SUM(G(I,:))
-           IF (S .EQ. 0.0) G(I,:) = V
-        END DO
-
+        IF (IDX .EQ. 0) THEN
+           DO I=1,M
+              S = SUM(G(I,:))
+              IF (S .EQ. 0.0) G(I,:) = V
+           END DO
+        ELSE
+           DO I=1,N
+              S = SUM(G(:,I))
+              IF (S .EQ. 0.0) G(:,I) = V
+           END DO           
+        END IF
       END SUBROUTINE CORRECTM
 
       SUBROUTINE NORMALIZE_B( B, V, M, N )
@@ -122,7 +125,7 @@ MODULE hmm_for
         DOUBLE PRECISION, INTENT(INOUT), DIMENSION(M,N) :: B
         DOUBLE PRECISION, INTENT(IN), DIMENSION(N) :: V
 
-        PRINT *, "NORMALIZE_B N=", N, "M=", M
+!        PRINT *, "NORMALIZE_B N=", N, "M=", M
 
         DO J=1,N
            IF (V(J) .NE. 0.0) THEN
@@ -135,5 +138,19 @@ MODULE hmm_for
            END DO
         END DO
       END SUBROUTINE NORMALIZE_B
-   END MODULE hmm_for
+
+      SUBROUTINE GAMMA( AL, B, S, G, M, N )
+        DOUBLE PRECISION, INTENT(IN), DIMENSION(M,N) :: B
+        DOUBLE PRECISION, INTENT(IN), DIMENSION(M,N) :: AL
+        DOUBLE PRECISION, INTENT(IN), DIMENSION(M) :: S   ! scaling_factors
+        DOUBLE PRECISION, INTENT(OUT), DIMENSION(M,N) :: G
+        DOUBLE PRECISION, DIMENSION(M) :: SI
+        INTEGER :: T, M, N
+
+        SI(:) = 1./S(:)
+        DO T=1,M
+           G(T,:) = AL(T,:)*B(T,:)/S(T)
+        END DO
+      END SUBROUTINE GAMMA
+    END MODULE hmm_for
 

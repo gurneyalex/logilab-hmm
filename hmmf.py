@@ -14,6 +14,8 @@ except ImportError:
 
 class HMM_F(HMM):
     "HMM"
+
+    ORDER = "F"
     
     AlphaScaled = staticmethod(_hmmf.hmm_for.alpha_scaled)
     BetaScaled = staticmethod(_hmmf.hmm_for.beta_scaled)
@@ -21,10 +23,13 @@ class HMM_F(HMM):
     UpdateIterB = staticmethod(_hmmf.hmm_for.update_iter_b)
     CorrectM = staticmethod(_hmmf.hmm_for.correctm)
     NormalizeB = staticmethod(_hmmf.hmm_for.normalize_b)
-
+    _gamma = staticmethod(_hmmf.hmm_for.gamma)
 
 class HMM_F_prof(HMM):
     "HMM"
+
+    ORDER = "F"
+    
     AlphaScaled = staticmethod(_hmmf.hmm_for.alpha_scaled)
     BetaScaled = staticmethod(_hmmf.hmm_for.beta_scaled)
     Ksi = staticmethod(_hmmf.hmm_for.hmm_ksi)

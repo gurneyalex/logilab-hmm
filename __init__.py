@@ -1,4 +1,4 @@
-# -*- coding: ISO-8859-1 -*-
+# -*- coding: iso-8859-1 -*-
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
 # Foundation; either version 2 of the License, or (at your option) any later
@@ -19,14 +19,16 @@ __revision__ = "$Id: __init__.py,v 1.4 2004-11-07 15:27:04 nico Exp $"
 
 import hmm
 HMM = hmm.HMM
+HMM_PY = HMM
 try:
     import hmmc
-    HMM = hmmc.HMM_C
+    HMM = HMM_C = hmmc.HMM_C
+    
 except ImportError:
     pass
 
 try:
     import hmmf
-    HMM = hmmf.HMM_F
+    HMM = HMM_F = hmmf.HMM_F
 except ImportError:
     pass
