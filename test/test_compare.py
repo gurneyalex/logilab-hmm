@@ -9,7 +9,10 @@ from logilab.hmm.hmm import HMM
 from logilab.hmm.hmmc import HMM_C
 from logilab.hmm.hmmf import HMM_F
 
-from numpy import array, take, alltrue
+from numpy import array, take, alltrue, allclose
+
+RTOL = 1e-7
+ATOL = 1e-10
 
 def _test_simu(HMM, sample, A0, B0, pi0):
     test = HMM(['a', 'b'], ['s1', 's2', 's3'], A0, B0, pi0)
@@ -51,34 +54,35 @@ def test_alpha_scaled():
 
     obs = array([0,0,1,0,0,0,1,2,2,2,1,0])
     bo = take( B0, obs, 0)
-    print "***",bo,"***"
     a1, s1 = test1.AlphaScaled( A0, bo, pi0 )
     a2, s2 = test2.AlphaScaled( A0, bo, pi0 )
     a3, s3 = test3.AlphaScaled( A0, bo, pi0 )
 
-    assert alltrue( (a1-a2)==0 )
-    assert alltrue( (a1-a3)==0 )
-    assert alltrue( (s1-s2)==0 )
-    assert alltrue( (s1-s3)==0 )
-    print a1-a2,a1-a3
-    print s1-s2,s1-s3
+    assert allclose(a1,a2,RTOL,ATOL)
+    assert allclose(a1,a3,RTOL,ATOL)
+    assert allclose(s1,s2,RTOL,ATOL)
+    assert allclose(s1,s3,RTOL,ATOL)
+    print "AlphaScaled ok"
 
+def test_beta_scaled():
+    A0 = array([[.3, .7], [.5, .5]])
+    B0 = array([[.5, 0], [.5, .5], [0, .5]])
+    pi0 = array([.9, .1])
+    test1 = HMM(['a', 'b'], ['s1', 's2', 's3'], A0, B0, pi0)
+    test2 = HMM_F(['a', 'b'], ['s1', 's2', 's3'], A0, B0, pi0)
+    test3 = HMM_C(['a', 'b'], ['s1', 's2', 's3'], A0, B0, pi0)
 
+    obs = array([0,0,1,0,0,0,1,2,2,2,1,0])
+    bo = take( B0, obs, 0)
+    a1, s1 = test1.AlphaScaled( A0, bo, pi0 )
 
-def test_time_alpha():
-    S = range(20)
-    O = range(40)
-    OBS = range(40)*4
-    test = HMM( S, O )
-    test.setRandomProba()
-    test1 = HMM( S, O, test.A, test.B, test.pi )
-    test2 = HMM_F( S, O, test.A, test.B, test.pi )
-    test3 = HMM_C( S, O, test.A, test.B, test.pi )
-    bo = take( test.B, OBS, 0 )
-    timecall( "HMM.AlphaScaled  ", test1.AlphaScaled, test.A, bo, test.pi )
-    timecall( "HMM_F.AlphaScaled", test2.AlphaScaled, test.A, bo, test.pi )
-    timecall( "HMM_C.AlphaScaled", test3.AlphaScaled, test.A, bo, test.pi )
+    beta1 = test1.BetaScaled( A0, bo, s1 )
+    beta2 = test2.BetaScaled( A0, bo, s1 )
+    beta3 = test3.BetaScaled( A0, bo, s1 )
 
+    assert allclose( beta1, beta2, RTOL, ATOL )
+    assert allclose( beta1, beta3, RTOL, ATOL )
+    print "BetaScaled ok"
 
-#test_alpha_scaled()
-test_time_alpha()
+test_alpha_scaled()
+test_beta_scaled()

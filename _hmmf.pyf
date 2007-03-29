@@ -38,8 +38,9 @@ python module _hmmf ! in
                 integer optional,check(shape(g,1)==n),depend(g) :: n=shape(g,1)
                 integer optional,check(shape(g,0)==t),depend(g) :: t=shape(g,0)
             end subroutine update_iter_b
-            subroutine correctm(g,v,m,n) ! in :_hmmf:_hmmf.f90:hmm_for
+            subroutine correctm(g,idx,v,m,n) ! in :_hmmf:_hmmf.f90:hmm_for
                 double precision dimension(m,n),intent(inout) :: g
+                integer :: idx
                 double precision :: v
                 integer optional,check(shape(g,0)==m),depend(g) :: m=shape(g,0)
                 integer optional,check(shape(g,1)==n),depend(g) :: n=shape(g,1)
@@ -50,6 +51,14 @@ python module _hmmf ! in
                 integer optional,check(shape(b,0)==m),depend(b) :: m=shape(b,0)
                 integer optional,check(shape(b,1)==n),depend(b) :: n=shape(b,1)
             end subroutine normalize_b
+            subroutine gamma(al,b,s,g,m,n) ! in :_hmmf:_hmmf.f90:hmm_for
+                double precision dimension(m,n),intent(in) :: al
+                double precision dimension(m,n),intent(in),depend(m,n) :: b
+                double precision dimension(m),intent(in),depend(m) :: s
+                double precision dimension(m,n),intent(out),depend(m,n) :: g
+                integer optional,check(shape(al,0)==m),depend(al) :: m=shape(al,0)
+                integer optional,check(shape(al,1)==n),depend(al) :: n=shape(al,1)
+            end subroutine gamma
         end module hmm_for
     end interface 
 end python module _hmmf

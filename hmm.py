@@ -26,14 +26,13 @@ reduce memory usage"""
 __revision__ = "$Id: hmm.py,v 1.15 2005-02-25 20:40:35 nico Exp $"
 
 from numpy import array, ones, zeros, cumsum, searchsorted, \
-     argmax, reshape, add, allclose, floor, where, \
+     reshape, add, allclose, floor, where, \
      product, sqrt, dot, multiply, alltrue, log, equal, newaxis, \
-     take, put, maximum
-from RandomArray import random
+     take, empty_like, isfortran
+from numpy.random import random
 from exceptions import RuntimeError
 import cPickle
 
-_max = maximum.reduce
 # Display log likelyhood every DISPITER iterations while learning
 DISPITER = 10
 
@@ -127,13 +126,6 @@ def _ksi( A, Bo, alpha, beta ):
         ksit /= ksi_sum
     return ksi
 
-
-def _clear( M ):
-    """Returns a matrix the same size as M and of type float.
-    Could be the same matrix as M or a new one."""
-    return zeros( M.shape, float )
-
-
 def _update_iter_B( gamma, obsIndices, B_bar ):
     """Updates the estimation of the observations probabilities.
     This function is used during the learning process."""
@@ -146,8 +138,6 @@ def _update_iter_B( gamma, obsIndices, B_bar ):
     # is zero!!)
     for i in xrange(len(obsIndices)):     # (110) numerateur
         B_bar[obsIndices[i]] += gamma[i]
-
-
 
 def _correctm( M, k, p ):
     """This function is a hack. It looks for states with 0 probabilities, and
@@ -204,6 +194,8 @@ class HMM:
     UpdateIterB = staticmethod(_update_iter_B)
     CorrectM = staticmethod(_correctm)
     NormalizeB = staticmethod(_normalize_B)
+
+    ORDER = "C"
     
     def __init__(self, state_list, observation_list,
                  transition_proba = None,
@@ -222,21 +214,16 @@ class HMM:
         self.M = len(observation_list)
         self.omega_X = state_list
         self.omega_O = observation_list
-        if transition_proba is not None:
-            self.A = array( transition_proba, float )
-        else:
-            self.A = ones( (self.N, self.N), float) / self.N
-            
-        if observation_proba is not None:
-            self.B = array(observation_proba, float)
-        else:
-            self.B = ones( (self.M, self.N), float) / self.M
-            
-        if initial_state_proba is not None:
-            self.pi = array( initial_state_proba, float )
-        else:
-            self.pi = ones( (self.N,), float ) / self.N
+        if transition_proba is None:
+            transition_proba = ones( (self.N, self.N), float) / self.N
+        if observation_proba is None:
+            observation_proba = ones( (self.M, self.N), float) / self.M
+        if initial_state_proba is None:
+            initial_state_proba = ones( (self.N,), float ) / self.N
 
+        self.A = array(transition_proba, float, order=self.ORDER)
+        self.B = array(observation_proba, float, order=self.ORDER)
+        self.pi = array(initial_state_proba, float, order=self.ORDER)
         # dimensional assertions
         self.checkHMM()
         self.makeIndexes()
@@ -290,7 +277,7 @@ class HMM:
                 self.makeIndexes()
             self.A = cPickle.load(f)
             self.pi = cPickle.load(f)
-            self.B = zeros( (self.M, self.N), float )
+            self.B = zeros( (self.M, self.N), float, self.ORDER )
             for i in xrange(self.M):
                 self.B[i, :] = cPickle.load(f)
         else:
@@ -449,12 +436,12 @@ class HMM:
             O_t = obs[t]
             for j in range(N):
                 multiply( delta, A[:, j], tmp )
-                idx = psi[t, j] = argmax(tmp)        # (33b)
+                idx = psi[t, j] = tmp.argmax()        # (33b)
                 delta_t[j] = tmp[idx] * B[O_t, j]  # (33a)
             delta, delta_t = delta_t, delta
 
         # reconstruction
-        i_star = [argmax(delta)]                         # (34b)
+        i_star = [delta.argmax()]                         # (34b)
         for psi_t in psi[-1:0:-1]:
             i_star.append( psi_t[i_star[-1]] )                 # (35)
         trajectory = [Omega_X[i] for i in i_star]
@@ -492,12 +479,12 @@ class HMM:
             O_t = obs[t]
             for j in xrange(N):
                 tmp = psi + logA[:, j]
-                idx = Q[t, j] = argmax(tmp)
+                idx = Q[t, j] = tmp.argmax()
                 psi_t[j] = tmp[idx] + logB[O_t, j] # (105b)
             psi, psi_t = psi_t, psi
 
         # reconstruction
-        q_star = [argmax(psi)]                         # (105c)
+        q_star = [psi.argmax()]                         # (105c)
         for q_t in Q[-1:0:-1]:
             q_star.append( q_t[q_star[-1]] )                 # (35)
         trajectory = [Omega_X[i] for i in q_star]
@@ -541,7 +528,8 @@ class HMM:
         of the training set using the precomputed
         alpha probabilities (sum(k=0..N,alpha(T,k)).
         It should increase during the learning process."""
-        return -add.reduce( log(scale_factors) )
+        t = where( scale_factors==0.0, SMALLESTFLOAT, scale_factors )
+        return -add.reduce( log(t) )
 
     def multiple_learn(self, m_observations,
                        states = None,
@@ -549,15 +537,16 @@ class HMM:
         """Uses Baum-Welch algorithm to learn the probabilities on multiple
         observations sequences
         """
+        assert isfortran(self.B)
         # remove empty lists
         m_observations = filter( lambda x: x, m_observations )
         K = len( m_observations )
         learning_curve = []
-        sigma_gamma_A = zeros( (self.N, ), float )
-        sigma_gamma_B = zeros( (self.N, ), float )
-        A_bar  = zeros( (self.N, self.N), float )
-        B_bar  = zeros( (self.M, self.N), float )
-        pi_bar = zeros( self.N, float )
+        sigma_gamma_A = zeros( (self.N, ), float, order=self.ORDER )
+        sigma_gamma_B = zeros( (self.N, ), float, order=self.ORDER )
+        A_bar  = zeros( (self.N, self.N), float, order=self.ORDER )
+        B_bar  = zeros( (self.M, self.N), float, order=self.ORDER )
+        pi_bar = zeros( self.N, float, order=self.ORDER )
         if DISPITER == 0:
             dispiter = maxiter
         else:
@@ -710,3 +699,24 @@ class HMM:
 
 
 
+    def normalize(self, P = None):
+        """This can be used after a learning pass to
+        reorder the states so that the s_i -> s_i transition
+        probability are ordered s(0,0)>s(1,1) ... > s(n,n)
+
+        the permutation of states can be passed as a parameter
+        """
+        if P is None:
+            P = self.A.diagonal().argsort()
+        A = empty_like(self.A)
+        PI = empty_like(self.pi)
+        B = empty_like(self.B)
+        N = A.shape[0]
+        for i in xrange(N):
+            pi = P[i]
+            for j in xrange(N):
+                pj = P[j]
+                A[i,j] = self.A[pi,pj]
+            B[:,i] = self.B[:,pi]
+            PI[i] = self.pi[pi]
+        return A,B,PI
