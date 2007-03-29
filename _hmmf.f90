@@ -7,12 +7,11 @@ MODULE hmm_for
         DOUBLE PRECISION, INTENT(IN), DIMENSION(N,N) :: A
         DOUBLE PRECISION, INTENT(IN), DIMENSION(T,N) :: B
         DOUBLE PRECISION, INTENT(IN), DIMENSION(N) :: PI
-        DOUBLE PRECISION, INTENT(OUT), DIMENSION(T,N) :: R
-        DOUBLE PRECISION, INTENT(OUT), DIMENSION(T) :: S
-        INTEGER :: I, J, K
-        DOUBLE PRECISION :: SUM
+        DOUBLE PRECISION, INTENT(OUT), DIMENSION(T,N) :: R ! alpha_scaled
+        DOUBLE PRECISION, INTENT(OUT), DIMENSION(T) :: S   ! scaling_factors
+        INTEGER :: I, J
 
-        PRINT *, "ALPHA_SCALED N=", N, "T=", T
+        !PRINT *, "ALPHA_SCALED N=", N, "T=", T
 
         ! Compute alpha( 1, i )
         S = 0.0
@@ -24,19 +23,16 @@ MODULE hmm_for
         S(1) = 1./S(1)
 
         ! Normalize
-        R(1,1:N) = R(1,1:N) * S(1)
+        R(1,:) = R(1,:) * S(1)
 
         DO I=2, T
+           S(I) = 0.
            DO J=1, N
-              SUM = 0
-              DO K=1, N
-                 SUM = SUM + A(K,J)*R(I, K)
-              END DO
-              R(I,J) = SUM*B(I,J)
+              R(I,J) = DOT_PRODUCT(A(:,J),R(I-1,:))*B(I,J)
               S(I) = S(I) + R(I,J)
            END DO
            S(I) = 1. / S(I)
-           R(I,1:N) = R(I,1:N) * S(I)
+           R(I,:) = R(I,:) * S(I)
         END DO
       END SUBROUTINE ALPHA_SCALED
 

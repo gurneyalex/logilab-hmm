@@ -76,7 +76,7 @@ def _alpha_scaled(A, Bo, pi):
     and alpha_scaled(t,i)=alpha(t,i)*C(t)
     The function returns: (alpha_scaled,C(t))
     """
-    T = len(Bo)
+    T = Bo.shape[0]
     N = A.shape[0]
     alpha_t = Bo[0] * pi                # (19)
     scaling_factors = zeros( T, float )
@@ -198,12 +198,12 @@ class HMM:
     Comments in the source code mentionning a number are references to
     equations in the algorithm descriptions of that paper."""
 
-    AlphaScaled = _alpha_scaled
-    BetaScaled = _beta_scaled
-    Ksi = _ksi
-    UpdateIterB = _update_iter_B
-    CorrectM = _correctm
-    NormalizeB = _normalize_B
+    AlphaScaled = staticmethod(_alpha_scaled)
+    BetaScaled = staticmethod(_beta_scaled)
+    Ksi = staticmethod(_ksi)
+    UpdateIterB = staticmethod(_update_iter_B)
+    CorrectM = staticmethod(_correctm)
+    NormalizeB = staticmethod(_normalize_B)
     
     def __init__(self, state_list, observation_list,
                  transition_proba = None,
