@@ -22,7 +22,10 @@ class HMM_F(HMM):
     Ksi = staticmethod(_hmmf.hmm_for.hmm_ksi)
     UpdateIterB = staticmethod(_hmmf.hmm_for.update_iter_b)
     CorrectM = staticmethod(_hmmf.hmm_for.correctm)
-    NormalizeB = staticmethod(_hmmf.hmm_for.normalize_b)
+#    NormalizeB = staticmethod(_hmmf.hmm_for.normalize_b)
+    @staticmethod
+    def NormalizeB(B_Bar, sigma_gamma_B):
+        B_Bar[:] = _hmmf.hmm_for.normalize_b(B_Bar, sigma_gamma_B)
     _gamma = staticmethod(_hmmf.hmm_for.gamma)
 
 class HMM_F_prof(HMM):
