@@ -33,20 +33,20 @@ python module _hmmf ! in
             subroutine update_iter_b(g,obs,b_bar,m,n,t) ! in :_hmmf:_hmmf.f90:hmm_for
                 double precision dimension(t,n),intent(in) :: g
                 integer dimension(t),intent(in),depend(t) :: obs
-                double precision dimension(m,n),intent(inout),depend(n) :: b_bar
+                double precision dimension(m,n),intent(in,out),depend(n) :: b_bar
                 integer optional,check(shape(b_bar,0)==m),depend(b_bar) :: m=shape(b_bar,0)
                 integer optional,check(shape(g,1)==n),depend(g) :: n=shape(g,1)
                 integer optional,check(shape(g,0)==t),depend(g) :: t=shape(g,0)
             end subroutine update_iter_b
             subroutine correctm(g,idx,v,m,n) ! in :_hmmf:_hmmf.f90:hmm_for
-                double precision dimension(m,n),intent(inout) :: g
+                double precision dimension(m,n),intent(in,out) :: g
                 integer :: idx
                 double precision :: v
                 integer optional,check(shape(g,0)==m),depend(g) :: m=shape(g,0)
                 integer optional,check(shape(g,1)==n),depend(g) :: n=shape(g,1)
             end subroutine correctm
             subroutine normalize_b(b,v,m,n) ! in :_hmmf:_hmmf.f90:hmm_for
-                double precision dimension(m,n),intent(inout) :: b
+                double precision dimension(m,n),intent(in,out) :: b
                 double precision dimension(n),intent(in),depend(n) :: v
                 integer optional,check(shape(b,0)==m),depend(b) :: m=shape(b,0)
                 integer optional,check(shape(b,1)==n),depend(b) :: n=shape(b,1)
