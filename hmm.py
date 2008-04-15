@@ -34,7 +34,7 @@ from exceptions import RuntimeError
 import cPickle
 
 # Display log likelyhood every DISPITER iterations while learning
-DISPITER = 10
+DISPITER = 100
 
 
 matrixproduct = dot
@@ -83,10 +83,10 @@ def _alpha_scaled(A, Bo, pi):
     alpha_scaled = zeros( (T, N), float)
     alpha_scaled[0] = alpha_t*scaling_factors[0]
     for i in xrange(1, T):
-        alpha_t = dot(alpha_scaled[i-1], A)*Bo[i]  # (92a)
+        alpha_t = dot(alpha_scaled[i-1], A)*Bo[i]  # (92a)        
         scaling_t = 1./add.reduce(alpha_t)
         scaling_factors[i] = scaling_t
-        alpha_scaled[i] = alpha_t*scaling_t      # (92b)
+        alpha_scaled[i] = alpha_t*scaling_t      # (92b)    
     return alpha_scaled, scaling_factors
 
 
@@ -537,9 +537,10 @@ class HMM:
         """Uses Baum-Welch algorithm to learn the probabilities on multiple
         observations sequences
         """
-        assert isfortran(self.B)
+        # assert not( isfortran(self.B)) #  ???
         # remove empty lists
         m_observations = filter( lambda x: x, m_observations )
+        setO =  set()   # set of obsevations        
         K = len( m_observations )
         learning_curve = []
         sigma_gamma_A = zeros( (self.N, ), float, order=self.ORDER )
@@ -556,6 +557,7 @@ class HMM:
             observations = m_observations[k]
             obsIndices = self._getObservationIndices(observations)
             obs_list.append( obsIndices )
+            setO = setO | set(observations)  # add new elements observed
         for iter in xrange( 1, maxiter + 1 ):
             total_likelihood = 0
             for k in range(K):
@@ -568,7 +570,9 @@ class HMM:
                 pi_bar += gamma[0]
                 self._update_iter_gamma( gamma, sigma_gamma_A, sigma_gamma_B )
                 self._update_iter_A( ksi, A_bar )
-                self.UpdateIterB( gamma, obsIndices, B_bar )
+                # self.UpdateIterB( gamma, obsIndices, B_bar ) : PROBLEME
+                for i in xrange(len(obsIndices)):     # (110) numerateur
+                    B_bar[obsIndices[i]] += gamma[i]
                 total_likelihood += self._likelihood( scale_factors )
                 
             #end for k in range(K)
@@ -594,6 +598,12 @@ class HMM:
             sigma_gamma_B.fill(0)
         else:
             print "The Baum-Welch algorithm did not converge in %d iterations" % maxiter
+        # check B
+        setO = set(self.omega_O) - setO
+        while setO != set():
+            e = setO.pop()
+            e = self._getObservationIndices(e)
+            self.B[e] = 0
         return iter, learning_curve
 
     def _baumWelch( self, obsIndices, maxiter ):
@@ -699,6 +709,7 @@ class HMM:
         """
         if P is None:
             P = self.A.diagonal().argsort()
+            P = P[::-1]   
         A = empty_like(self.A)
         PI = empty_like(self.pi)
         B = empty_like(self.B)
