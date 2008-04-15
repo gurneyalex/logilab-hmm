@@ -106,7 +106,7 @@ MODULE hmm_for
 
 !        PRINT *, "CORRECTM N=", N, "M=", M
 
-        IF (IDX .EQ. 0) THEN
+        IF (IDX .EQ. 1) THEN
            DO I=1,M
               S = SUM(G(I,:))
               IF (S .EQ. 0.0) G(I,:) = V
