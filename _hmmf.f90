@@ -93,7 +93,7 @@ MODULE hmm_for
 !        PRINT *, "UPDATE_ITER_B N=", N, "T=", T, "M=", M
 
         DO I=1, T
-           B_bar( OBS(I), : ) = B_bar( OBS(I), : ) + G(I, : )
+           B_bar(OBS(I)+1, : ) = B_bar( OBS(I)+1, :) + G( I, : )
         END DO
 
       END SUBROUTINE UPDATE_ITER_B
@@ -119,12 +119,11 @@ MODULE hmm_for
         END IF
       END SUBROUTINE CORRECTM
 
-      SUBROUTINE NORMALIZE_B( B, V, M, N )
+      SUBROUTINE NORMALIZE_B( B, V, M, N)
         INTEGER :: M, N, I, J
         DOUBLE PRECISION :: W
         DOUBLE PRECISION, INTENT(INOUT), DIMENSION(M,N) :: B
         DOUBLE PRECISION, INTENT(IN), DIMENSION(N) :: V
-
 !        PRINT *, "NORMALIZE_B N=", N, "M=", M
 
         DO J=1,N
