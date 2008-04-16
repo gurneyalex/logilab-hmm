@@ -6,13 +6,13 @@ import logilab.hmm.hmm as hmm
 import logilab.hmm.hmmc as hmmc
 import logilab.hmm.hmmf as hmmf
 
-verbose=1
+#verbose=1
 
-def show_analysis(h,chain):
-    if verbose:
-        print "Chain      : ", chain
-        print "analyse    : ", h.analyze(chain)
-        print "analyse_log: ", h.analyze_log(chain)
+#def show_analysis(h,chain):
+ #   if verbose:
+  #      print "Chain      : ", chain
+   #     print "analyse    : ", h.analyze(chain)
+    #    print "analyse_log: ", h.analyze_log(chain)
 
 class TestInitProba(unittest.TestCase):
     
@@ -255,7 +255,7 @@ class TestFunctions(unittest.TestCase):
         B_bar = self.hmm4.B
         gamma = array([[0.5, 0.5],[0.5, 0.5],[0.5, 0.5]])
         obsIndices = [0, 1, 2]
-        result = array([[5./6, 5./6], [5./6, 5./6], [5./6, 5./6]])
+        result = array([[5./6, 5./6], [5./6, 5./6], [5./6, 5./6]])       
         self.hmm4.UpdateIterB( gamma, obsIndices, B_bar )
         self.failUnless( allclose(result, B_bar))
 
@@ -319,13 +319,37 @@ class TestFunctions(unittest.TestCase):
 
 
 
-class TestFunctionsC(TestFunctions):
+class TestFunctionsC (TestFunctions):
     hmmKlass = hmmc.HMM_C
 
 class TestFunctionsF(TestFunctions):
     hmmKlass = hmmf.HMM_F
 
+class TestStates(unittest.TestCase):
+    
+    def setUp(self):
+        self.hmm1 = hmm.HMM(['a', 'b', 'c'], ['1', '2', '3'])
+        self.hmm2 = hmm.HMM(['a', 'b'], ['1', '2'])
 
+    def testLearnA_1(self):
+        states = ['a','a','b','a','c','b','c','a','b','a','c','b','a']
+        result = array([[0.2, 0.4, 0.4],[0.75, 0, 0.25],[1./3, 2./3, 0]])
+        self.hmm1._learn_A(states)
+        self.failUnless( allclose(result, self.hmm1.A))
+
+    def testLearnA_2(self):
+        states = ['a','b','a','a','a','b','a']
+        result = array([[0.5, 0.5, 0.],[1., 0., 0.],[0., 0., 1.]])
+        self.hmm1._learn_A(states)
+        self.failUnless( allclose(result, self.hmm1.A))
+
+    def testBaumwelchStates_1(self):
+        states = ['a','a','a','b','a','b']
+        obs = ['2','2','2','1','2','1']
+        resA = array([[0.5, 0.5],[1., 0.]])
+        resB = array([[0., 1.],[1., 0.]])
+        self.hmm2.learn(obs, states)
+        self.hmm2.checkHMM()
 
 class TestDeterministic(unittest.TestCase):
     """Test the viterbi algorithm on a deterministic chain"""
@@ -405,6 +429,7 @@ class TestBaumWelch(unittest.TestCase):
                             array([[0.7, 0.3],[0.2, 0.8]]),
                             array([[0.2, 0.4], [0.6, 0.2], [0.2, 0.4]]),
                             array([0.2, 0.8]))
+        self.det = hmm.HMM(['a'], ['1', '2'])
 
     def _learn_compare(self, chain, state=None):      
         niterHMM = self.aHMM.learn(chain, state)
@@ -443,7 +468,18 @@ class TestBaumWelch(unittest.TestCase):
         states = None    #  algorithm not implemented
         self._learn_compare(chain,states)
 
-    def testMultiple_learn_1(self):#  ??construire deterministe
+    def testBaumwelch_6(self):
+        chain = ['2'] * 2
+        resA = self.det.A
+        resB = array([[0.],[1.]])
+        respi = self.det.pi
+        nit, lc = self.det.learn(chain)
+        self.failUnless( allclose(resA, self.det.A))
+        self.failUnless( allclose(resB, self.det.B))
+        self.failUnless( allclose(respi, self.det.pi))
+
+
+    def testMultiple_learn_1(self):
         chains = []
         for i in xrange(10):
             chains.append(self.aHMM.simulate(10))
@@ -489,6 +525,15 @@ class TestBaumWelch(unittest.TestCase):
         self.failUnless( allclose(self.aHMM_1.pi, self.aHMM_C.pi))
         self.failUnless( allclose(self.aHMM_1.pi, self.aHMM_F.pi))
 
+    def testMultiple_learn_4(self):
+        chains = [ ['2'] * 2, ['2'] * 3,['2'] * 4]
+        resA = self.det.A
+        resB = array([[0.],[1.]])
+        respi = self.det.pi
+        nit, lc = self.det.multiple_learn(chains)
+        self.failUnless( allclose(resA, self.det.A))
+        self.failUnless( allclose(resB, self.det.B))
+        self.failUnless( allclose(respi, self.det.pi))
 
 class TestPickle(unittest.TestCase):
     """ test the pickle implementation """
