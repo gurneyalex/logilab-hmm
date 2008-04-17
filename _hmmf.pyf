@@ -33,7 +33,7 @@ python module _hmmf ! in
             subroutine update_iter_b(g,obs,b_bar,m,n,t) ! in :_hmmf:_hmmf.f90:hmm_for
                 double precision dimension(t,n),intent(in) :: g
                 integer dimension(t),intent(in),depend(t) :: obs
-                double precision dimension(m,n),intent(inout),depend(n) :: b_bar
+                double precision dimension(m,n),intent(in,out),depend(n) :: b_bar
                 integer optional,check(shape(b_bar,0)==m),depend(b_bar) :: m=shape(b_bar,0)
                 integer optional,check(shape(g,1)==n),depend(g) :: n=shape(g,1)
                 integer optional,check(shape(g,0)==t),depend(g) :: t=shape(g,0)
