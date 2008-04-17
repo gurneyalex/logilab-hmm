@@ -87,9 +87,9 @@ def test_time_analyze_log(h1, h2, h3, obs):
     timecall( "HMM_C.analyze_log  ", h3.analyze_log, obs)
 
 def test_time_learn(h1, h2, h3, obs):
-    timecall( "HMM.learn          ", h1.learn, obs, None, 1000, 0)
+#    timecall( "HMM.learn          ", h1.learn, obs, None, 1000, 1)
     timecall( "HMM_F.learn        ", h2.learn, obs, None, 1000, 0)
-    timecall( "HMM_C.learn        ", h3.learn, obs, None, 1000, 0)
+    timecall( "HMM_C.learn        ", h3.learn, obs, None, 1000, 1)
 
 def test_time_multiple_learn(h1, h2, h3, chains):
     timecall( "HMM.multiple_learn  ", h1.multiple_learn, chains, None, 1000, 0)
@@ -99,7 +99,7 @@ def test_time_multiple_learn(h1, h2, h3, chains):
 if __name__ == "__main__":
     
     S = range(20)
-    O = range(40)
+    O = range(20)
     test = hmm.HMM( S, O )
     chains = []
     observation = test.simulate(10)
@@ -111,27 +111,27 @@ if __name__ == "__main__":
     test3 = hmmc.HMM_C( S, O)
     setProba(test1, test2, test3)
     print "\n     ----------------- AlphaScaled -----------------------"
-    test_time_alpha(test1, test2, test3, observation)
+#    test_time_alpha(test1, test2, test3, observation)
     print "\n     ----------------- BetaScaled  -----------------------"
-    test_time_beta(test1, test2, test3, observation)
+#    test_time_beta(test1, test2, test3, observation)
     print "\n     -----------------     Ksi     -----------------------"
-    test_time_ksi(test1, test2, test3, observation)
+#    test_time_ksi(test1, test2, test3, observation)
     print "\n     ----------------- UpdateIterB -----------------------"
-    test_time_UpdateIterB(test1, test2, test3, observation)
+#    test_time_UpdateIterB(test1, test2, test3, observation)
     print "\n     -----------------  CorrectM   -----------------------"
-    test_time_CorrectM(test1, test2, test3)
+#    test_time_CorrectM(test1, test2, test3)
     print "\n     ----------------- NormalizeB  -----------------------"
-    test_time_NormalizeB(test1, test2, test3)
+#    test_time_NormalizeB(test1, test2, test3)
     print "\n     -----------------   analyze   -----------------------"
-    test_time_analyze(test1, test2, test3, observation)
+#    test_time_analyze(test1, test2, test3, observation)
     print "\n     ----------------- analyze_log -----------------------"
-    test_time_analyze_log(test1, test2, test3, observation)
+#    test_time_analyze_log(test1, test2, test3, observation)
     print "\n     -----------------    learn    -----------------------"
-    setProbaEqui(test1, test2, test3)
+#    setProbaEqui(test1, test2, test3)
     test_time_learn(test1, test2, test3, observation)
     print "\n     -----------------multiple_learn-----------------------"
-    setProbaEqui(test1, test2, test3)
-    test_time_multiple_learn(test1, test2, test3, chains)
+#    setProbaEqui(test1, test2, test3)
+#    test_time_multiple_learn(test1, test2, test3, chains)
 
 
 

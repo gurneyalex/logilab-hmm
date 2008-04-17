@@ -37,7 +37,7 @@ def test5():
 
 def test6():
     """Same as test5 but with a bigger state space and observations values"""
-    test = HMM(range(5), range(10))
+    test = HMM(range(3), range(4))
     test.setRandomProba()
     print 'Original'
     print 'A =', test.A
@@ -45,11 +45,11 @@ def test6():
     print 'pi =', test.pi
     print
     print 'Generating sample data...'
-    sample = test.simulate(10000)
+    sample = test.simulate(1000)
     print 'Randomizing model...'
     test.setRandomProba()
     print 'Training model...'
-    test.learn(sample, None, 10000)
+    test.learn(sample, None, 1000)
     print 'trained values'
     print 'A =', test.A
     print 'B =', test.B
@@ -63,7 +63,7 @@ def test8():
     print 'Generating sample data...'
     l = []
     test.setRandomProba()
-    for i in range(100):
+    for i in range(10):
         obs = test.simulate(100)
         l.append(obs)
     print 'Original'
@@ -93,13 +93,13 @@ def test9_errors(gene, test):
         error3 = norm( gene.pi - test.pi[::-1] )
     return error1, error2, error3
 
-def test9_errors( gene, test):
-    gA, gB, gPI = gene.normalize( [1,0] )
-    tA, tB, tPI = test.normalize( [1,0] )
-    if norm(gB-tB)>norm(gene.B-test.B):
-        gA, gB, gPI = gene.A, gene.B, gene.pi
-        tA, tB, tPI = test.A, test.B, test.pi
-    return norm( gA-tA ), norm( gB-tB ), norm( gPI - tPI )
+#def test9_errors( gene, test):
+#    gA, gB, gPI = gene.normalize( [1,0] )
+#    tA, tB, tPI = test.normalize( [1,0] )
+#    if norm(gB-tB)>norm(gene.B-test.B):
+#        gA, gB, gPI = gene.A, gene.B, gene.pi
+#        tA, tB, tPI = test.A, test.B, test.pi
+#    return norm( gA-tA ), norm( gB-tB ), norm( gPI - tPI )
 
 
 def test9_display(errors):
@@ -130,29 +130,31 @@ def test9(n=10):
     return errors
 
 
-def test10(HMM, n=10):
+def test10(HMM, n=10): 
     """This test generate a simple HMM (determinist state transitions)
     And check if the algoritm converge in less than 1000 iterations"""
     S,V,A,B,PI = deterministic_hmm()
     gene = HMM( S, V, A, B, PI )
     print "Generating data..."
-    data = [ gene.simulate(20) for i in range(100) ]
+    data = [ gene.simulate(20) for i in range(100) ] 
     test = HMM(['a', 'b'], ['s1', 's2', 's3'])
     errors = []
     for i in xrange(n):
         print "round ", i
-        iteration, curve = test.multiple_learn(data)
+        test.setRandomProba()
+        iteration, curve = test.multiple_learn(data)        
         error1, error2, error3 = test9_errors( gene, test )
         _A, _B, _pi = test.normalize()
         print "A: ", _A
         print "B: ", _B
         print "Pi:", _pi
         errors.append([i, iteration, error1, error2, error3, curve, 0])
-        test.setRandomProba()
     test9_display(errors)
     return errors, test
 
-
-#test10(HMM_C)
-test10(HMM_F)
-#test10(HMM)
+if __name__ == '__main__':
+    #test6()
+    #test8()
+    #test10(HMM_C)
+    test10(HMM_F)
+    #test10(HMM)

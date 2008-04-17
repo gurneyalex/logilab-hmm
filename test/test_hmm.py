@@ -9,10 +9,10 @@ import logilab.hmm.hmmf as hmmf
 #verbose=1
 
 #def show_analysis(h,chain):
- #   if verbose:
-  #      print "Chain      : ", chain
-   #     print "analyse    : ", h.analyze(chain)
-    #    print "analyse_log: ", h.analyze_log(chain)
+#    if verbose:
+#        print "Chain      : ", chain
+#     print "analyse    : ", h.analyze(chain)
+#     print "analyse_log: ", h.analyze_log(chain)
 
 class TestInitProba(unittest.TestCase):
     
@@ -343,14 +343,6 @@ class TestStates(unittest.TestCase):
         self.hmm1._learn_A(states)
         self.failUnless( allclose(result, self.hmm1.A))
 
-    def testBaumwelchStates_1(self):
-        states = ['a','a','a','b','a','b']
-        obs = ['2','2','2','1','2','1']
-        resA = array([[0.5, 0.5],[1., 0.]])
-        resB = array([[0., 1.],[1., 0.]])
-        self.hmm2.learn(obs, states)
-        self.hmm2.checkHMM()
-
 class TestDeterministic(unittest.TestCase):
     """Test the viterbi algorithm on a deterministic chain"""
 
@@ -430,6 +422,7 @@ class TestBaumWelch(unittest.TestCase):
                             array([[0.2, 0.4], [0.6, 0.2], [0.2, 0.4]]),
                             array([0.2, 0.8]))
         self.det = hmm.HMM(['a'], ['1', '2'])
+        self.test = hmm.HMM( range(20), range(40) )
 
     def _learn_compare(self, chain, state=None):      
         niterHMM = self.aHMM.learn(chain, state)
@@ -442,6 +435,29 @@ class TestBaumWelch(unittest.TestCase):
         self.failUnless(allclose(self.aHMMF.B, self.aHMM.B))
         self.failUnless(allclose(self.aHMMC.pi, self.aHMM.pi))
         self.failUnless(allclose(self.aHMMF.pi, self.aHMM.pi))
+
+    def testUpdateIterB(self):
+        B_bar = array([[ 0.,0.],[ 0.,0.],[ 0.,0.]])
+        B_barF = array([[ 0.,0.],[ 0.,0.],[ 0.,0.]])
+        B_barC = array([[ 0.,0.],[ 0.,0.],[ 0.,0.]])
+        gamma = array([[ 0.17584567,0.82415433],[ 0.43775031,0.56224969],
+                    [ 0.43195352,0.56804648],[ 0.44859571,0.55140429],
+                    [ 0.43240921,0.56759079],[ 0.44861501,0.55138499],
+                    [ 0.43241002,0.56758998],[ 0.448615,0.551385  ],
+                    [ 0.43240908,0.56759092],[ 0.44859262,0.55140738],
+                    [ 0.43188047,0.56811953],[ 0.43601172,0.56398828],
+                    [ 0.13479001,0.86520999],[ 0.13445915,0.86554085],
+                    [ 0.41918731,0.58081269],[ 0.44750776,0.55249224],
+                    [ 0.41943579,0.58056421],[ 0.14038371,0.85961629],
+                    [ 0.41931846,0.58068154],[ 0.44469141,0.55530859]])
+
+        obsIndices = [0,1,0,1,0,1,2,1,2,1,0,1,0,1,0,1,2,1,0,2]
+        result = array([[5./6, 5./6], [5./6, 5./6], [5./6, 5./6]])       
+        self.aHMM.UpdateIterB( gamma, obsIndices, B_bar )
+        self.aHMMC.UpdateIterB( gamma, obsIndices, B_barC )
+        self.aHMMF.UpdateIterB( gamma, obsIndices, B_barF )
+        self.failUnless( allclose(B_bar, B_barC))
+        self.failUnless( allclose(B_bar, B_barF))
    
     def testBaumwelch_1(self):
         """test the observations (1,2,1,2,1,2,1,2,1,2) """
@@ -478,6 +494,14 @@ class TestBaumWelch(unittest.TestCase):
         self.failUnless( allclose(resB, self.det.B))
         self.failUnless( allclose(respi, self.det.pi))
 
+    def testBaumwelch_7(self):
+        observation = self.test.simulate(10)
+        nit, lc = self.test.learn(observation)
+        self.test.checkHMM()
+        #nit, lc = self.test.learn(observation)
+        #self.test.checkHMM()
+        #nit, lc = self.test.learn(observation)
+        #ce test peut provoquer 'warning' (cf test_time.py) 
 
     def testMultiple_learn_1(self):
         chains = []
@@ -534,6 +558,15 @@ class TestBaumWelch(unittest.TestCase):
         self.failUnless( allclose(resA, self.det.A))
         self.failUnless( allclose(resB, self.det.B))
         self.failUnless( allclose(respi, self.det.pi))
+
+    def testMultiple_learn_5(self):
+        chains = []
+        for i in xrange(10):
+            chains.append(self.test.simulate(10))
+        self.test.setRandomProba()
+        nit, lc = self.test.multiple_learn(chains)
+        self.test.checkHMM()
+
 
 class TestPickle(unittest.TestCase):
     """ test the pickle implementation """

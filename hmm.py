@@ -530,8 +530,7 @@ class HMM:
         else:
             # FIXME: implement supervised learning algorithm
             # should not be too difficult
-            obs = self._getObservationIndices(observations)
-            iter = self._baumWelchStates( obs,states, maxiter, impr )
+            pass
         return iter
 
     def _getObservations( self, obsIndices ):
@@ -618,54 +617,10 @@ class HMM:
         setO = set(self.omega_O) - setO
         while setO != set():
             e = setO.pop()
-            e = self._getObservationIndices(e)
-            self.B[e] = 0
+            e = self._getObservationIndices([e])
+            self.B[e[0]] = 0
         return iter, learning_curve
 
-
-
-    def _baumWelchStates( self, obsIndices, states=None, maxiter=1000, impr=1 ):
-        """Uses Baum-Welch algorithm to learn the probabilities
-        Scaling on the forward and backward values is automatically
-        performed when numerical problems (underflow) are encountered.
-        Each iteration prints a dot on stderr, or a star if scaling was
-        applied"""
-        B  = self.B
-        if not (states == None):
-            self._learn_A(states)
-        A  = self.A
-        pi = self.pi
-        learning_curve = []
-        if DISPITER == 0:
-            dispiter = maxiter
-        else:
-            dispiter = DISPITER
-        Bo = take( B, obsIndices, 0 )
-        for iter in xrange( 1, maxiter + 1 ):
-            alpha, scale_factors = self.AlphaScaled( A, Bo, pi )
-            beta = self.BetaScaled( self.A, Bo, scale_factors )
-            ksi = self.Ksi( self.A, Bo, alpha, beta )
-            gamma = self._gamma( alpha, beta, scale_factors )
-            A_bar, B_bar, pi_bar = self._final_step( gamma, ksi, obsIndices )
-            if states == None:
-                A_bar = self.A
-            learning_curve.append( self._likelihood(scale_factors) )
-            if impr:
-                if (iter % dispiter) == 0:
-                    print "Iter ", iter, " log=", learning_curve[-1]
-            if self._stop_condition( A_bar, pi_bar, B_bar):
-                if impr:
-                    print 'Converged in %d iterations' % iter
-                break
-            else:
-                if states == None:
-                    self.A = A = A_bar
-                self.B = B = B_bar
-                self.pi = pi = pi_bar
-        else:
-            if impr:
-                print "The Baum-Welch algorithm did not converge in %d iterations" % maxiter
-        return iter, learning_curve
 
     def _baumWelch( self, obsIndices, maxiter, impr ):
         """Uses Baum-Welch algorithm to learn the probabilities

@@ -20,7 +20,10 @@ class HMM_F(HMM):
     AlphaScaled = staticmethod(_hmmf.hmm_for.alpha_scaled)
     BetaScaled = staticmethod(_hmmf.hmm_for.beta_scaled)
     Ksi = staticmethod(_hmmf.hmm_for.hmm_ksi)
-    UpdateIterB = staticmethod(_hmmf.hmm_for.update_iter_b)
+#    UpdateIterB = staticmethod(_hmmf.hmm_for.update_iter_b)
+    @staticmethod
+    def UpdateIterB(gamma, obsIndices, B_Bar):
+        B_Bar[:] =  _hmmf.hmm_for.update_iter_b(gamma, obsIndices, B_Bar)
     CorrectM = staticmethod(_hmmf.hmm_for.correctm)
 #    NormalizeB = staticmethod(_hmmf.hmm_for.normalize_b)
     @staticmethod
