@@ -93,13 +93,13 @@ def test9_errors(gene, test):
         error3 = norm( gene.pi - test.pi[::-1] )
     return error1, error2, error3
 
-#def test9_errors( gene, test):
-#    gA, gB, gPI = gene.normalize( [1,0] )
-#    tA, tB, tPI = test.normalize( [1,0] )
-#    if norm(gB-tB)>norm(gene.B-test.B):
-#        gA, gB, gPI = gene.A, gene.B, gene.pi
-#        tA, tB, tPI = test.A, test.B, test.pi
-#    return norm( gA-tA ), norm( gB-tB ), norm( gPI - tPI )
+def test9_errors( gene, test):
+    gA, gB, gPI = gene.normalize( [1,0] )
+    tA, tB, tPI = test.normalize( [1,0] )
+    if norm(gB-tB)>norm(gene.B-test.B):
+        gA, gB, gPI = gene.A, gene.B, gene.pi
+        tA, tB, tPI = test.A, test.B, test.pi
+    return norm( gA-tA ), norm( gB-tB ), norm( gPI - tPI )
 
 
 def test9_display(errors):
@@ -130,19 +130,19 @@ def test9(n=10):
     return errors
 
 
-def test10(HMM, n=10): 
+def test10(HMM, n=10):
     """This test generate a simple HMM (determinist state transitions)
     And check if the algoritm converge in less than 1000 iterations"""
     S,V,A,B,PI = deterministic_hmm()
     gene = HMM( S, V, A, B, PI )
     print "Generating data..."
-    data = [ gene.simulate(20) for i in range(100) ] 
+    data = [ gene.simulate(20) for i in range(100) ]
     test = HMM(['a', 'b'], ['s1', 's2', 's3'])
     errors = []
     for i in xrange(n):
         print "round ", i
         test.setRandomProba()
-        iteration, curve = test.multiple_learn(data)        
+        iteration, curve = test.multiple_learn(data)
         error1, error2, error3 = test9_errors( gene, test )
         _A, _B, _pi = test.normalize()
         print "A: ", _A
@@ -153,8 +153,8 @@ def test10(HMM, n=10):
     return errors, test
 
 if __name__ == '__main__':
-    #test6()
-    #test8()
-    #test10(HMM_C)
+    test6()
+    test8()
+    test10(HMM_C)
     test10(HMM_F)
-    #test10(HMM)
+    test10(HMM)

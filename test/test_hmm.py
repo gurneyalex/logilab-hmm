@@ -11,8 +11,8 @@ import logilab.hmm.hmmf as hmmf
 #def show_analysis(h,chain):
 #    if verbose:
 #        print "Chain      : ", chain
-#     print "analyse    : ", h.analyze(chain)
-#     print "analyse_log: ", h.analyze_log(chain)
+#    print "analyse    : ", h.analyze(chain)
+#    print "analyse_log: ", h.analyze_log(chain)
 
 class TestInitProba(unittest.TestCase):
     
@@ -84,6 +84,7 @@ class TestFunctions(unittest.TestCase):
                                [ .5,  .5],
                                [0.0, 0.5]]),
                         array([0.5, 0.5]))
+
         self.hmm3 = self.hmmKlass(['a', 'b'], ['1', '2'],
                         array([[0., 1.],
                                [0., 1.]]),
