@@ -524,13 +524,8 @@ class HMM:
 
     def learn( self, observations, states = None, maxiter = 1000, impr=1 ):
         """Train the model according to one sequence of observations"""
-        if states is None:
-            obs = self._getObservationIndices(observations)
-            iter = self._baumWelch( obs, maxiter, impr )
-        else:
-            # FIXME: implement supervised learning algorithm
-            # should not be too difficult
-            pass
+        obs = self._getObservationIndices(observations)
+        iter = self._baumWelch( obs, states, maxiter, impr )
         return iter
 
     def _getObservations( self, obsIndices ):
@@ -621,14 +616,15 @@ class HMM:
             self.B[e[0]] = 0
         return iter, learning_curve
 
-
-    def _baumWelch( self, obsIndices, maxiter, impr ):
+    def _baumWelch( self, obsIndices, states=None, maxiter=1000, impr=1 ):
         """Uses Baum-Welch algorithm to learn the probabilities
         Scaling on the forward and backward values is automatically
         performed when numerical problems (underflow) are encountered.
         Each iteration prints a dot on stderr, or a star if scaling was
         applied"""
         B  = self.B
+        if states != None:
+            self._learn_A(states)
         A  = self.A
         pi = self.pi
         learning_curve = []
@@ -643,21 +639,24 @@ class HMM:
             ksi = self.Ksi( self.A, Bo, alpha, beta )
             gamma = self._gamma( alpha, beta, scale_factors )
             A_bar, B_bar, pi_bar = self._final_step( gamma, ksi, obsIndices )
+            if states == None:
+                A_bar = self.A
             learning_curve.append( self._likelihood(scale_factors) )
-            if (iter % dispiter) == 0:
-                if impr:
+            if impr:
+                if (iter % dispiter) == 0:
                     print "Iter ", iter, " log=", learning_curve[-1]
             if self._stop_condition( A_bar, pi_bar, B_bar):
                 if impr:
                     print 'Converged in %d iterations' % iter
                 break
             else:
-                self.A = A = A_bar
+                if states == None:
+                    self.A = A = A_bar
                 self.B = B = B_bar
                 self.pi = pi = pi_bar
         else:
             if impr:
-                print "The Baum-Welsh algorithm did not converge in %d iterations" % maxiter
+                print "The Baum-Welch algorithm did not converge in %d iterations" % maxiter
         return iter, learning_curve
 
     def _update_iter_gamma( self, gamma, sigma_gamma_A, sigma_gamma_B ):
@@ -671,7 +670,6 @@ class HMM:
         A_bar_k = add.reduce( ksi )
         add( A_bar, A_bar_k, A_bar )           # (109) numerateur
     
-
     def _normalize_iter_A( self, A_bar, sigma_gamma_A ):
         """Internal function.
         Normalize the estimations of matrix A.
@@ -681,7 +679,6 @@ class HMM:
         # sigma_gamma(i)=0 implies A(i,:)=0 and B(i,:)=0
         sigma_gamma_A = 1. / where( sigma_gamma_A, sigma_gamma_A, 1 )
         A_bar *= sigma_gamma_A[:, newaxis]    # (109)
-
 
     def _final_step( self, gamma, ksi, obsIndices ):
         """Compute the new model, using gamma and ksi"""
@@ -717,8 +714,6 @@ class HMM:
         g = alpha * beta / scaling_factors[:, newaxis]
         return g
 
-
-
     def normalize(self, P = None):
         """This can be used after a learning pass to
         reorder the states so that the s_i -> s_i transition
@@ -741,3 +736,43 @@ class HMM:
             B[:,i] = self.B[:,pi]
             PI[i] = self.pi[pi]
         return A,B,PI
+
+    def _weighting_factor(self, setObs):
+        """compute Wk = P(setObservations | lambdak) """
+        P = 1
+        K = len(setObs)
+        for k in range(K):
+            obs = setObs[k]
+            Tk = len(obs)
+            obsIndices = self._getObservationIndices(obs)
+            Bo = take(self.B, obsIndices, 0)
+            alphaScaled, scalingFactor = self.AlphaScaled(self.A, Bo, self.pi)
+            alpha = alphaScaled[Tk-1] / product(scalingFactor, 0) 
+            P *= add.reduce(alpha)
+        return P
+
+    def ensemble_averaging(self, setObservations, impr=1, states=None, maxiter=1000):
+        K = len(setObservations)
+        W = 0
+        hmmk = HMM(self.omega_X, self.omega_O, self.A, self.B, self.pi)
+        A_bar = zeros( (self.N, self.N))
+        B_bar = zeros( (self.M, self.N))
+        pi_bar = zeros(self.N)
+        for k in range(K):
+            hmmk.setRandomProba()
+            obsIndices = self._getObservationIndices(setObservations[k])
+            nit, learningCurve = hmmk._baumWelch(obsIndices, states, maxiter, impr)
+            hmmk.dump()
+            Wk = hmmk._weighting_factor(setObservations)
+            A_bar = A_bar + Wk * hmmk.A
+            B_bar = B_bar + Wk * hmmk.B
+            pi_bar = pi_bar + Wk * hmmk.pi
+            W = W + Wk
+        self.A = A_bar / W
+        self.B = B_bar / W
+        self.pi = pi_bar / W
+
+
+
+
+

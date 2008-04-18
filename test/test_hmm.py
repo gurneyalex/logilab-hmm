@@ -84,7 +84,6 @@ class TestFunctions(unittest.TestCase):
                                [ .5,  .5],
                                [0.0, 0.5]]),
                         array([0.5, 0.5]))
-
         self.hmm3 = self.hmmKlass(['a', 'b'], ['1', '2'],
                         array([[0., 1.],
                                [0., 1.]]),
@@ -92,6 +91,13 @@ class TestFunctions(unittest.TestCase):
                                 [0., 1.]] ),
                         array([0.5, 0.5]))
         self.hmm4 = self.hmmKlass(['a', 'b'], ['1', '2','3'],None, None, None)
+        self.hmm5 = self.hmmKlass(['a', 'b'], ['1', '2', '3'],
+                        array([[0., 1.],
+                               [1., 0.]]),
+                        array([[0.5, 0.0],
+                               [ .5,  .5],
+                               [0.0, 0.5]]),
+                        array([0.5, 0.5]))
     
     def testSimulate(self):
         chain = self.hmm1.simulate(3)
@@ -316,8 +322,17 @@ class TestFunctions(unittest.TestCase):
         self.failUnless( allclose(bBar, B))
         self.failUnless( allclose(piBar, PI))
 
+    def test_Weighting_factor_1(self):
+        setObs = [['1','2'],['2','2']]
+        resP = 1./4
+        P = self.hmm3._weighting_factor(setObs)
+        self.failUnless(P == resP)
 
-
+    def test_Weighting_factor_2(self):
+        setObs = [['1','3'],['1','2'],['2','2']]
+        resP = 1./256
+        P = self.hmm5._weighting_factor(setObs)
+        self.failUnless(P == resP)
 
 class TestFunctionsC (TestFunctions):
     hmmKlass = hmmc.HMM_C
@@ -423,6 +438,7 @@ class TestBaumWelch(unittest.TestCase):
                             array([0.2, 0.8]))
         self.det = hmm.HMM(['a'], ['1', '2'])
         self.test = hmm.HMM( range(20), range(40) )
+        self.det2 = hmm.HMM(['a','b'], ['1', '2'] )
 
     def _learn_compare(self, chain, state=None):      
         niterHMM = self.aHMM.learn(chain, state)
@@ -480,9 +496,16 @@ class TestBaumWelch(unittest.TestCase):
         self._learn_compare(chain)
           
     def testBaumwelch_5(self):
-        chain = ['1','2'] * 5
-        states = None    #  algorithm not implemented
-        self._learn_compare(chain,states)
+        chain = ['1','1'] * 20
+        states = ['b','a'] + ['a','a'] * 19
+        resA = array([[1., 0.],[1., 0.]])
+        resB = array([[1., 1.],[0., 0.]])
+        resPI = array([0.5, 0.5])
+        niterHMM = self.det2.learn(chain, states)
+        self.det2.checkHMM()
+        self.failUnless( allclose(resA, self.det2.A))
+        self.failUnless( allclose(resB, self.det2.B))
+        self.failUnless( allclose(resPI, self.det2.pi))
 
     def testBaumwelch_6(self):
         chain = ['2'] * 2
@@ -495,10 +518,11 @@ class TestBaumWelch(unittest.TestCase):
         self.failUnless( allclose(respi, self.det.pi))
 
     def testBaumwelch_7(self):
-        observation = self.test.simulate(10)
+        observation = self.test.simulate(100)
         nit, lc = self.test.learn(observation)
         self.test.checkHMM()
-        #nit, lc = self.test.learn(observation)
+        #self.test.setRandomProba()
+        nit, lc = self.test.learn(observation)
         #self.test.checkHMM()
         #nit, lc = self.test.learn(observation)
         #ce test peut provoquer 'warning' (cf test_time.py) 
@@ -562,11 +586,47 @@ class TestBaumWelch(unittest.TestCase):
     def testMultiple_learn_5(self):
         chains = []
         for i in xrange(10):
-            chains.append(self.test.simulate(10))
+            chains.append(self.test.simulate(20))
         self.test.setRandomProba()
         nit, lc = self.test.multiple_learn(chains)
         self.test.checkHMM()
 
+class TestEnsembleAveraging(unittest.TestCase):
+    def setUp(self):
+        self.det = hmm.HMM(['a'], ['1', '2'])
+        self.test = hmm.HMM( range(20), range(40) )
+        self.gen = hmm.HMM( ['a','b'], ['1', '2','3'],
+                            array([[0.7, 0.3],[0.2, 0.8]]),
+                            array([[0.2, 0.4], [0.6, 0.2], [0.2, 0.4]]),
+                            array([0.2, 0.8]))
+        self.aHMM = hmm.HMM(['a','b'], ['1', '2','3'])
+        self.aHMM_C = hmmc.HMM_C( ['a','b'], ['1', '2','3'])
+        self.aHMM_F = hmmf.HMM_F( ['a','b'], ['1', '2','3'])
+
+    def testEA_1(self):
+        setObservations = [ ['2'] * 2, ['2'] * 3,['2'] * 4]
+        resA = self.det.A
+        resB = array([[0.],[1.]])
+        respi = self.det.pi
+        self.det.ensemble_averaging(setObservations,0)
+        self.failUnless( allclose(resA, self.det.A))
+        self.failUnless( allclose(resB, self.det.B))
+        self.failUnless( allclose(respi, self.det.pi))
+
+    def testEA_2(self):
+        chains = []
+        for i in xrange(10):
+            chains.append(self.test.simulate(20))
+        self.test.setRandomProba()
+        self.test.ensemble_averaging(chains)
+        self.test.checkHMM()
+
+    def testEA_3(self):
+        chains = [ ['1','2','2','2','2'],['1','2','2','2','2','2','2'],
+                    ['2','2','2','2','2','2','2']]
+        self.aHMM.ensemble_averaging(chains,0)
+        self.aHMM.dump()
+        self.aHMM.checkHM()
 
 class TestPickle(unittest.TestCase):
     """ test the pickle implementation """
