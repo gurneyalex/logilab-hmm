@@ -40,10 +40,6 @@ def test_simu():
     for _HMM in (HMM, HMM_C, HMM_F):
         _test_simu( _HMM, sample, test2.A, test2.B, test2.pi )
 
-
-
-
-
 def test_alpha_scaled():
     A0 = array([[.3, .7], [.5, .5]])
     B0 = array([[.5, 0], [.5, .5], [0, .5]])

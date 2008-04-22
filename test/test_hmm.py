@@ -1,10 +1,11 @@
 import unittest
 import os
 import autopath
-from numpy import array, alltrue, allclose, zeros, take, isfortran
+from numpy import array, alltrue, allclose, zeros, take, add
 import logilab.hmm.hmm as hmm
 import logilab.hmm.hmmc as hmmc
 import logilab.hmm.hmmf as hmmf
+import logilab.hmm.hmmS as hmmS
 
 #verbose=1
 
@@ -91,13 +92,6 @@ class TestFunctions(unittest.TestCase):
                                 [0., 1.]] ),
                         array([0.5, 0.5]))
         self.hmm4 = self.hmmKlass(['a', 'b'], ['1', '2','3'],None, None, None)
-        self.hmm5 = self.hmmKlass(['a', 'b'], ['1', '2', '3'],
-                        array([[0., 1.],
-                               [1., 0.]]),
-                        array([[0.5, 0.0],
-                               [ .5,  .5],
-                               [0.0, 0.5]]),
-                        array([0.5, 0.5]))
     
     def testSimulate(self):
         chain = self.hmm1.simulate(3)
@@ -168,6 +162,14 @@ class TestFunctions(unittest.TestCase):
         alpha, fact = self.hmm4.AlphaScaled(self.hmm4.A, Bo, self.hmm4.pi )
         self.failUnless( allclose(alpha, resAlpha))
         self.failUnless( allclose(fact, resFact))
+
+    def testAlphaScaled_3(self):
+            chains = [ ['1','2','2','2','2'],
+                    ['1','2','2','2','2','2','2'], 
+                    ['2','2','2','2','2','2','2']]
+            obsIndices = [0,1,1,1,1,1,1]
+            Bo = take(self.hmm4.B, obsIndices, 0)
+            alpha, fact = self.hmm4.AlphaScaled(self.hmm4.A, Bo, self.hmm4.pi )
 
     def testBetaScaled_1(self):
         obsIndices = [0, 1, 1]
@@ -322,30 +324,69 @@ class TestFunctions(unittest.TestCase):
         self.failUnless( allclose(bBar, B))
         self.failUnless( allclose(piBar, PI))
 
-    def test_Weighting_factor_1(self):
-        setObs = [['1','2'],['2','2']]
-        resP = 1./4
-        P = self.hmm3._weighting_factor(setObs)
-        self.failUnless(P == resP)
-
-    def test_Weighting_factor_2(self):
-        setObs = [['1','3'],['1','2'],['2','2']]
-        resP = 1./256
-        P = self.hmm5._weighting_factor(setObs)
-        self.failUnless(P == resP)
-
 class TestFunctionsC (TestFunctions):
     hmmKlass = hmmc.HMM_C
 
 class TestFunctionsF(TestFunctions):
     hmmKlass = hmmf.HMM_F
 
+class TestWeightingFactor(unittest.TestCase):
+
+    hmmKlass = hmm.HMM
+    def setUp(self):
+        self.hmm1 = self.hmmKlass(['a', 'b'], ['1', '2', '3'],
+                        array([[0., 1.],
+                               [1., 0.]]),
+                        array([[0.5, 0.0],
+                               [ .5,  .5],
+                               [0.0, 0.5]]),
+                        array([0.5, 0.5]))
+        self.hmm2 = self.hmmKlass(['a', 'b'], ['1', '2'],
+                        array([[0., 1.],
+                               [0., 1.]]),
+                        array( [[1., 0.],
+                                [0., 1.]] ),
+                        array([0.5, 0.5]))
+
+    def test_Weighting_factor_Pall_1(self):
+        setObs = [['1','2'],['2','2']]
+        resP = 1./4
+        P = self.hmm2._weighting_factor_Pall(setObs)
+        self.failUnless(P == resP)
+
+    def test_Weighting_factor_Pall_2(self):
+        setObs = [['1','3'],['1','2'],['2','2']]
+        resP = 1./256
+        P = self.hmm1._weighting_factor_Pall(setObs)
+        self.failUnless(P == resP)
+
+    def test_Weighting_factor_Pk_1(self):
+        Obs = ['1','2']
+        resP = 1./2
+        P = self.hmm2._weighting_factor_Pk(Obs)
+        self.failUnless(P == resP)
+
+    def test_Weighting_factor_Pk_2(self):
+        Obs = ['1','3']
+        resP = 1./8
+        P = self.hmm1._weighting_factor_Pk(Obs)
+        self.failUnless(P == resP)
+
+class TestWeightingFactorC(TestWeightingFactor):
+    hmmKlass = hmmc.HMM_C
+
+class TestWeightingFactorF(TestWeightingFactor):
+    hmmKlass = hmmf.HMM_F
+
 class TestStates(unittest.TestCase):
     
     def setUp(self):
-        self.hmm1 = hmm.HMM(['a', 'b', 'c'], ['1', '2', '3'])
-        self.hmm2 = hmm.HMM(['a', 'b'], ['1', '2'])
-
+        self.hmm1 = hmmS.HMMS(['a', 'b', 'c'], ['1', '2', '3'])
+        self.hmm2 = hmmS.HMMS(['a', 'b'], ['1', '2'])
+        self.aHMM_1 = hmmS.HMMS( ['a','b'], ['1', '2','3'], 
+                            array([[0.7, 0.3],[0.2, 0.8]]),
+                            array([[0.2, 0.4], [0.6, 0.2], [0.2, 0.4]]),
+                            array([0.2, 0.8]))
     def testLearnA_1(self):
         states = ['a','a','b','a','c','b','c','a','b','a','c','b','a']
         result = array([[0.2, 0.4, 0.4],[0.75, 0, 0.25],[1./3, 2./3, 0]])
@@ -357,6 +398,54 @@ class TestStates(unittest.TestCase):
         result = array([[0.5, 0.5, 0.],[1., 0., 0.],[0., 0., 1.]])
         self.hmm1._learn_A(states)
         self.failUnless( allclose(result, self.hmm1.A))
+    
+    def testMultLearnA(self):
+        states = [['a','b']*3, ['b','a']*2]
+        result = array([[0., 1.],[1., 0.]])
+        self.hmm2._multiple_learn_A(states)
+        self.failUnless( allclose(result, self.hmm2.A))
+
+    def testBaumwelch(self):
+        chain = ['1','1'] * 4
+        states = ['b','a'] + ['a','a'] * 3
+        resA = array([[1., 0.],[1., 0.]])
+        resB = array([[1., 1.],[0., 0.]])
+        resPI = array([0.5, 0.5])
+        niterHMM = self.hmm2.learn(chain, states)
+        self.hmm2.checkHMM()
+        self.failUnless( allclose(resA, self.hmm2.A))
+        self.failUnless( allclose(resB, self.hmm2.B))
+        self.failUnless( allclose(resPI, self.hmm2.pi))
+
+    def testMultiple_learn_1(self):
+        chains = [ ['1','2','2','2','2'],['1','2','2','2','2','2','2'],
+                    ['2','2','2','2','2','2','2']]
+        states = [['a']+['b']*4, ['a']+['b']*4, ['b']*5]
+        nit = self.hmm2.multiple_learn(chains, states)
+        self.hmm2.checkHMM()
+
+    def testEA_1(self):
+        chains = [ ['1']+['2']* 4, ['1']+['2']* 4, ['2']*5]
+        states = [ ['a']+['b']* 4, ['a']+['b']* 4, ['b']*5 ]
+        resA = array([[0., 1.],[0., 1.]])
+        resB = array([[1., 0.],[0., 1.]])
+        resPI = array([2./3, 1./3])
+        self.hmm2.ensemble_averaging(chains,states, "unit", 1000, 0)
+        self.hmm2.checkHMM()
+
+    def testEA_2(self):
+        chains = [['1','1'] * 4]*5
+        states = [['b','a'] + ['a','a'] * 3]*5
+        resA = array([[1., 0.],[1., 0.]])
+        resB = array([[1., 1.],[0., 0.]])
+        resPI = array([0.5, 0.5])
+        self.hmm2.ensemble_averaging(chains,states, "unit" , 1000, 0)
+        self.hmm2.checkHMM()
+        self.failUnless( allclose(resA, self.hmm2.A))
+        self.failUnless( allclose(resB, self.hmm2.B))
+        self.failUnless( allclose(resPI, self.hmm2.pi))
+
+
 
 class TestDeterministic(unittest.TestCase):
     """Test the viterbi algorithm on a deterministic chain"""
@@ -437,13 +526,13 @@ class TestBaumWelch(unittest.TestCase):
                             array([[0.2, 0.4], [0.6, 0.2], [0.2, 0.4]]),
                             array([0.2, 0.8]))
         self.det = hmm.HMM(['a'], ['1', '2'])
-        self.test = hmm.HMM( range(20), range(40) )
+        self.test = hmm.HMM( range(5), range(5) )
         self.det2 = hmm.HMM(['a','b'], ['1', '2'] )
 
-    def _learn_compare(self, chain, state=None):      
-        niterHMM = self.aHMM.learn(chain, state)
-        niterHMMC = self.aHMMC.learn(chain, state)
-        niterHMMF = self.aHMMF.learn(chain, state)
+    def _learn_compare(self, chain):      
+        niterHMM = self.aHMM.learn(chain)
+        niterHMMC = self.aHMMC.learn(chain)
+        niterHMMF = self.aHMMF.learn(chain)
         
         self.failUnless(allclose(self.aHMMC.A, self.aHMM.A))
         self.failUnless(allclose(self.aHMMF.A, self.aHMM.A))
@@ -486,26 +575,14 @@ class TestBaumWelch(unittest.TestCase):
         self._learn_compare(chain)
 
     def testBaumwelch_3(self):
-        """test the observations (3,3,3,3,3,3,3,3,3,3) """
-        chain = ['3'] * 10
+        """test the observations (3,3,3,3,3,3,3,3,3,1) """
+        chain = ['3'] * 9 + ['1']
         self._learn_compare(chain)
 
     def testBaumwelch_4(self):
-        """test the observations (1,1,2,2,3,1,3,1,2,1) """
-        chain = ['1','1','2','2','3','1','3','1','2','1']
+        """test the observations (1,2,1,2,1,2,1,2,1,2) """
+        chain = ['1','2'] * 5 
         self._learn_compare(chain)
-          
-    def testBaumwelch_5(self):
-        chain = ['1','1'] * 20
-        states = ['b','a'] + ['a','a'] * 19
-        resA = array([[1., 0.],[1., 0.]])
-        resB = array([[1., 1.],[0., 0.]])
-        resPI = array([0.5, 0.5])
-        niterHMM = self.det2.learn(chain, states)
-        self.det2.checkHMM()
-        self.failUnless( allclose(resA, self.det2.A))
-        self.failUnless( allclose(resB, self.det2.B))
-        self.failUnless( allclose(resPI, self.det2.pi))
 
     def testBaumwelch_6(self):
         chain = ['2'] * 2
@@ -518,14 +595,10 @@ class TestBaumWelch(unittest.TestCase):
         self.failUnless( allclose(respi, self.det.pi))
 
     def testBaumwelch_7(self):
-        observation = self.test.simulate(100)
+        observation = self.test.simulate(10)
+        self.test.setRandomProba()
         nit, lc = self.test.learn(observation)
         self.test.checkHMM()
-        #self.test.setRandomProba()
-        nit, lc = self.test.learn(observation)
-        #self.test.checkHMM()
-        #nit, lc = self.test.learn(observation)
-        #ce test peut provoquer 'warning' (cf test_time.py) 
 
     def testMultiple_learn_1(self):
         chains = []
@@ -559,8 +632,7 @@ class TestBaumWelch(unittest.TestCase):
     def testMultiple_learn_3(self):
         chains = [ ['1','2','2','2','2'],['1','2','2','2','2','2','2'],
                     ['2','2','2','2','2','2','2']]
-        states = None    #  not implemented
-        nit = self.aHMM_1.multiple_learn(chains, states)
+        nit = self.aHMM_1.multiple_learn(chains)
         self.aHMM_1.checkHMM()
         nit = self.aHMM_C.multiple_learn(chains)
         self.aHMM_C.checkHMM()
@@ -594,21 +666,19 @@ class TestBaumWelch(unittest.TestCase):
 class TestEnsembleAveraging(unittest.TestCase):
     def setUp(self):
         self.det = hmm.HMM(['a'], ['1', '2'])
-        self.test = hmm.HMM( range(20), range(40) )
-        self.gen = hmm.HMM( ['a','b'], ['1', '2','3'],
+        self.test = hmm.HMM( ['a','b'], ['1','2'] )
+        self.gen = hmm.HMM( ['a','b'], ['1', '2'],
                             array([[0.7, 0.3],[0.2, 0.8]]),
-                            array([[0.2, 0.4], [0.6, 0.2], [0.2, 0.4]]),
-                            array([0.2, 0.8]))
-        self.aHMM = hmm.HMM(['a','b'], ['1', '2','3'])
-        self.aHMM_C = hmmc.HMM_C( ['a','b'], ['1', '2','3'])
-        self.aHMM_F = hmmf.HMM_F( ['a','b'], ['1', '2','3'])
+                            array([[0.2, 0.6], [0.8, 0.4]]),
+                            array([0.5, 0.5]))
+        self.aHMM = hmm.HMM(['a','b'], ['1', '2'])
 
     def testEA_1(self):
         setObservations = [ ['2'] * 2, ['2'] * 3,['2'] * 4]
         resA = self.det.A
         resB = array([[0.],[1.]])
         respi = self.det.pi
-        self.det.ensemble_averaging(setObservations,0)
+        self.det.ensemble_averaging(setObservations, "unit", 1000,0)
         self.failUnless( allclose(resA, self.det.A))
         self.failUnless( allclose(resB, self.det.B))
         self.failUnless( allclose(respi, self.det.pi))
@@ -616,17 +686,35 @@ class TestEnsembleAveraging(unittest.TestCase):
     def testEA_2(self):
         chains = []
         for i in xrange(10):
-            chains.append(self.test.simulate(20))
-        self.test.setRandomProba()
-        self.test.ensemble_averaging(chains)
+            chains.append(self.gen.simulate(10))
+        self.test.ensemble_averaging(chains, "unit", 1000, 1)
         self.test.checkHMM()
 
     def testEA_3(self):
-        chains = [ ['1','2','2','2','2'],['1','2','2','2','2','2','2'],
-                    ['2','2','2','2','2','2','2']]
-        self.aHMM.ensemble_averaging(chains,0)
-        self.aHMM.dump()
-        self.aHMM.checkHM()
+        chains = [ ['1','2','2','2','2'],['1','2','2','2','2'],
+                        ['2','2','2','2','2','2','2']]
+        self.aHMM.ensemble_averaging(chains, "unit", 1000, 0)
+        self.aHMM.checkHMM()
+
+    def testEA_4(self):
+        setObservations = [ ['2'] * 2, ['2'] * 3,['2'] * 4]
+        resA = self.det.A
+        resB = array([[0.],[1.]])
+        respi = self.det.pi
+        self.det.ensemble_averaging(setObservations, "Pall", 1000,0)
+        self.failUnless( allclose(resA, self.det.A))
+        self.failUnless( allclose(resB, self.det.B))
+        self.failUnless( allclose(respi, self.det.pi))
+
+    def testEA_5(self):
+        setObservations = [ ['2'] * 2, ['2'] * 3,['2'] * 4]
+        resA = self.det.A
+        resB = array([[0.],[1.]])
+        respi = self.det.pi
+        self.det.ensemble_averaging(setObservations, "Pk", 1000,0)
+        self.failUnless( allclose(resA, self.det.A))
+        self.failUnless( allclose(resB, self.det.B))
+        self.failUnless( allclose(respi, self.det.pi))
 
 class TestPickle(unittest.TestCase):
     """ test the pickle implementation """

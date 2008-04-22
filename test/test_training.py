@@ -111,7 +111,8 @@ def test9_display(errors):
 def test9(n=10):
     """This test generate a simple HMM (determinist state transitions)
     And check if the algoritm converge in less than 1000 iterations"""
-    gene = deterministic_hmm()
+    S, V, A0, B0, PI0 = deterministic_hmm()
+    gene = HMM(S, V, A0, B0, PI0)
     data = gene.simulate(500)
     test = HMM(['a', 'b'], ['s1', 's2', 's3'])
     errors = []
@@ -129,14 +130,13 @@ def test9(n=10):
     test9_display(errors)
     return errors
 
-
 def test10(HMM, n=10): 
     """This test generate a simple HMM (determinist state transitions)
     And check if the algoritm converge in less than 1000 iterations"""
     S,V,A,B,PI = deterministic_hmm()
     gene = HMM( S, V, A, B, PI )
     print "Generating data..."
-    data = [ gene.simulate(20) for i in range(100) ] 
+    data = [ gene.simulate(70) for i in range(10) ] 
     test = HMM(['a', 'b'], ['s1', 's2', 's3'])
     errors = []
     for i in xrange(n):
@@ -152,9 +152,60 @@ def test10(HMM, n=10):
     test9_display(errors)
     return errors, test
 
+def test11(HMM, n=10): 
+    """This test generate a simple HMM (determinist state transitions)
+    And check if the algoritm converge in less than 1000 iterations"""
+    S,V,A,B,PI = deterministic_hmm()
+    gene = HMM( S, V, A, B, PI )
+    print "original:"
+    gene.dump()
+    print "pi\n",gene.pi
+    print "Generating data..."
+    data = [ gene.simulate(70) for i in range(10) ] 
+    test = HMM(['a', 'b'], ['s1', 's2', 's3'])
+    errorsPall = []
+    errorsPk = []
+    errorsUnit = []
+    for i in xrange(n):
+        print "round ", i
+        test.setRandomProba()
+        A = test.A
+        B = test.B
+        pi = test.pi
+        test.ensemble_averaging(data, None,"Pall", 1000, 0)        
+        errorPall1, errorPall2, errorPall3 = test9_errors( gene, test )
+        test.A = A
+        test.B = B
+        test.pi = pi
+        test.ensemble_averaging(data, None,"Pk", 1000, 0)        
+        errorPk1, errorPk2, errorPk3 = test9_errors( gene, test )
+        test.A = A
+        test.B = B
+        test.pi = pi
+        test.ensemble_averaging(data, None,"unit", 1000, 0)        
+        errorUnit1, errorUnit2, errorUnit3 = test9_errors( gene, test )
+        _A, _B, _pi = test.normalize()
+        #print "A: ", _A
+        #print "B: ", _B
+        #print "Pi:", _pi
+        #print test.pi
+        iteration = 1
+        curve = 1
+        errorsPall.append([i, iteration, errorPall1, errorPall2, errorPall3, curve, 0])
+        errorsPk.append([i, iteration, errorPk1, errorPk2, errorPk3, curve, 0])
+        errorsUnit.append([i, iteration, errorUnit1, errorUnit2, errorUnit3, curve, 0])
+    print "-----------------Pall----------------"
+    test9_display(errorsPall)
+    print "------------------Pk-----------------"
+    test9_display(errorsPk)
+    print "-----------------Unit----------------"
+    test9_display(errorsUnit)
+    return errorsUnit, test
+
 if __name__ == '__main__':
     #test6()
     #test8()
     #test10(HMM_C)
-    test10(HMM_F)
-    #test10(HMM)
+    #test10(HMM_F)
+    test10(HMM)
+    #test11(HMM)

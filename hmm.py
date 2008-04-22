@@ -19,16 +19,17 @@
 
 """Hidden Markov Models in Python
 Implementation based on _A Tutorial on Hidden Markov Models and Selected
-Applications in Speech Recognition_, by Lawrence Rabiner, IEEE, 1989.
+Applications in Speech Recognition_, by Lawrence Rabiner, IEEE, 1989, _Improved Estimation of Hidden Markov Model Parameters from Multiple Observation Sequences_, by Richard I. A. Davis, Brian C. Lovell, Terry Caelli, 2002, _Improved Ensemble Training for Hidden Markov Models Using Random Relative Node Permutations_, by Richard I. A. Davis and Brian C. Lovell, 2003.
 This module uses numeric python multyarrays to improve performance and
-reduce memory usage"""
+reduce memory usage
+"""
 
 __revision__ = "$Id: hmm.py,v 1.15 2005-02-25 20:40:35 nico Exp $"
 
 from numpy import array, ones, zeros, cumsum, searchsorted, \
      reshape, add, allclose, floor, where, \
      product, sqrt, dot, multiply, alltrue, log, equal, newaxis, \
-     take, empty_like, isfortran
+     take, empty_like, isfortran, size
 from numpy.random import random
 from exceptions import RuntimeError
 import cPickle
@@ -79,7 +80,7 @@ def _alpha_scaled(A, Bo, pi):
     N = A.shape[0]
     alpha_t = Bo[0] * pi                # (19)
     scaling_factors = zeros( T, float )
-    scaling_factors[0] = 1./add.reduce(alpha_t)
+    scaling_factors[0] = 1./add.reduce(alpha_t)    
     alpha_scaled = zeros( (T, N), float)
     alpha_scaled[0] = alpha_t*scaling_factors[0]
     for i in xrange(1, T):
@@ -340,6 +341,7 @@ class HMM:
         self.setRandomTransitionProba()
         self.setRandomObservationProba()
         self.setRandomInitialProba()
+        self.checkHMM()
 
     def resetTransitionProba(self):
         """This resets the state transition matrix to zero. Use it
@@ -507,25 +509,19 @@ class HMM:
             res += logB[o, s]
         return res
 
-    def _learn_A(self, states):
-        T = len(states)
-        N = self.N
-        self.A = zeros((N,N))
-        for k in range(T-1):
-            Si = states[k]
-            Sj = states[k+1]
-            i = self.X_index[Si]
-            j = self.X_index[Sj]
-            self.A[i,j] += 1
-        for i in range(N):
-            if add.reduce(self.A, 1)[i]==0:
-                self.A[i,i] = 1
-        self.A *= 1./add.reduce(self.A, 1)[:, newaxis]
+    def _mask(self):
+        """forgive round errors"""
+        mask = (1 < self.A) & (self.A  <= 1+EPSILON)
+        self.A[mask] = 1.0
+        mask = (1 < self.B) & (self.B  <= 1+EPSILON)
+        self.B[mask] = 1.0
+        mask = (1 < self.pi) & (self.pi  <= 1+EPSILON)
+        self.pi[mask] = 1.0
 
-    def learn( self, observations, states = None, maxiter = 1000, impr=1 ):
+    def learn( self, observations, maxiter = 1000, impr=1 ):
         """Train the model according to one sequence of observations"""
         obs = self._getObservationIndices(observations)
-        iter = self._baumWelch( obs, states, maxiter, impr )
+        iter = self._baumWelch( obs, maxiter, impr )
         return iter
 
     def _getObservations( self, obsIndices ):
@@ -542,7 +538,6 @@ class HMM:
         return -add.reduce( log(t) )
 
     def multiple_learn(self, m_observations,
-                       states = None,
                        maxiter = 1000, impr=1 ):
         """Uses Baum-Welch algorithm to learn the probabilities on multiple
         observations sequences
@@ -608,6 +603,7 @@ class HMM:
         else:
             if impr:
                 print "The Baum-Welch algorithm did not converge in %d iterations" % maxiter
+        self._mask()
         # Correct B in case 0 probabilities slipped in
         setO = set(self.omega_O) - setO
         while setO != set():
@@ -616,15 +612,13 @@ class HMM:
             self.B[e[0]] = 0
         return iter, learning_curve
 
-    def _baumWelch( self, obsIndices, states=None, maxiter=1000, impr=1 ):
+    def _baumWelch( self, obsIndices, maxiter=1000, impr=1 ):
         """Uses Baum-Welch algorithm to learn the probabilities
         Scaling on the forward and backward values is automatically
         performed when numerical problems (underflow) are encountered.
         Each iteration prints a dot on stderr, or a star if scaling was
         applied"""
         B  = self.B
-        if states != None:
-            self._learn_A(states)
         A  = self.A
         pi = self.pi
         learning_curve = []
@@ -639,8 +633,6 @@ class HMM:
             ksi = self.Ksi( self.A, Bo, alpha, beta )
             gamma = self._gamma( alpha, beta, scale_factors )
             A_bar, B_bar, pi_bar = self._final_step( gamma, ksi, obsIndices )
-            if states == None:
-                A_bar = self.A
             learning_curve.append( self._likelihood(scale_factors) )
             if impr:
                 if (iter % dispiter) == 0:
@@ -650,10 +642,10 @@ class HMM:
                     print 'Converged in %d iterations' % iter
                 break
             else:
-                if states == None:
-                    self.A = A = A_bar
+                self.A = A = A_bar
                 self.B = B = B_bar
                 self.pi = pi = pi_bar
+                self._mask()
         else:
             if impr:
                 print "The Baum-Welch algorithm did not converge in %d iterations" % maxiter
@@ -682,19 +674,18 @@ class HMM:
 
     def _final_step( self, gamma, ksi, obsIndices ):
         """Compute the new model, using gamma and ksi"""
-        sigma_gamma = add.reduce(gamma[:-1])
+        sigma_gamma_A = add.reduce(gamma[:-1])
+        sigma_gamma_B = add.reduce(gamma)
         ## Compute new PI
         pi_bar = gamma[0]                       # (40a)
-
         ## Compute new A
         A_bar  = add.reduce(ksi)
-        A_bar /= sigma_gamma[:, newaxis] # (40b)
-        
+        A_bar /= sigma_gamma_A[:, newaxis] # (40b)       
         ## Compute new B
         B_bar = zeros( (self.M, self.N), float )
-        for i in xrange( len(obsIndices) - 1 ):
-            B_bar[obsIndices[i]] += gamma[i]
-        B_bar /= sigma_gamma
+        for i in xrange( len(obsIndices) ):
+            B_bar[obsIndices[i]] += gamma[i] 
+        B_bar /= sigma_gamma_B
         return A_bar, B_bar, pi_bar
 
     def _final_step2( self, gamma, ksi, obsIndices, A_bar, B_bar, pi_bar ):
@@ -723,7 +714,7 @@ class HMM:
         """
         if P is None:
             P = self.A.diagonal().argsort()
-            P = P[::-1]   
+            P = P[::-1]
         A = empty_like(self.A)
         PI = empty_like(self.pi)
         B = empty_like(self.B)
@@ -737,42 +728,64 @@ class HMM:
             PI[i] = self.pi[pi]
         return A,B,PI
 
-    def _weighting_factor(self, setObs):
-        """compute Wk = P(setObservations | lambdak) """
+    def _weighting_factor_Pall(self, setObs):
+        """compute Wk = P(setObservations | lambda_k) """
         P = 1
-        K = len(setObs)
-        for k in range(K):
-            obs = setObs[k]
+        for obs in setObs:
             Tk = len(obs)
             obsIndices = self._getObservationIndices(obs)
             Bo = take(self.B, obsIndices, 0)
-            alphaScaled, scalingFactor = self.AlphaScaled(self.A, Bo, self.pi)
-            alpha = alphaScaled[Tk-1] / product(scalingFactor, 0) 
-            P *= add.reduce(alpha)
+            null = 0
+            for i in range(Tk):
+                null = null or (allclose(Bo[i], zeros([self.N])))
+            if null:
+                P = 0
+            else:
+                alphaScaled, scalingFactor = self.AlphaScaled(self.A, Bo, self.pi)
+                alpha = alphaScaled[Tk-1] / product(scalingFactor, 0) 
+                P *= add.reduce(alpha)
         return P
 
-    def ensemble_averaging(self, setObservations, impr=1, states=None, maxiter=1000):
-        K = len(setObservations)
+    def _weighting_factor_Pk(self, observation):
+        """compute Wk = P(Observation_k | lambda_k) """
+        Tk = len(observation)
+        obsIndices = self._getObservationIndices(observation)
+        Bo = take(self.B, obsIndices, 0)
+        alphaScaled, scalingFactor = self.AlphaScaled(self.A, Bo, self.pi)
+        alpha = alphaScaled[Tk-1] / product(scalingFactor, 0) 
+        return add.reduce(alpha)
+
+    def ensemble_averaging(self, setObservations, weighting_factor="unit", maxiter=1000, impr=1):
+        """Uses ensemble averaging method to learn the probabilities on multiple
+        observations sequences"""
+        N = self.N
         W = 0
+        self._mask()
         hmmk = HMM(self.omega_X, self.omega_O, self.A, self.B, self.pi)
-        A_bar = zeros( (self.N, self.N))
-        B_bar = zeros( (self.M, self.N))
-        pi_bar = zeros(self.N)
-        for k in range(K):
-            hmmk.setRandomProba()
-            obsIndices = self._getObservationIndices(setObservations[k])
-            nit, learningCurve = hmmk._baumWelch(obsIndices, states, maxiter, impr)
-            hmmk.dump()
-            Wk = hmmk._weighting_factor(setObservations)
+        A_bar = zeros( (N, N))
+        B_bar = zeros( (self.M, N))
+        pi_bar = zeros(N)
+        for k, obs in enumerate(setObservations):
+            hmmk.A = self.A
+            hmmk.B = self.B
+            hmmk.pi = self.pi
+            obsIndices = self._getObservationIndices(obs)
+            nit, learningCurve = hmmk._baumWelch(obsIndices, maxiter, impr)
+            if weighting_factor == "Pall":
+                Wk = hmmk._weighting_factor_Pall(setObservations)
+            elif weighting_factor == "Pk":
+                Wk = hmmk._weighting_factor_Pk(obs)
+            else:
+                Wk = 1
             A_bar = A_bar + Wk * hmmk.A
             B_bar = B_bar + Wk * hmmk.B
             pi_bar = pi_bar + Wk * hmmk.pi
             W = W + Wk
+            if W == 0:
+                W = 1
+                print "The ensemble averaging method did not converge"
         self.A = A_bar / W
         self.B = B_bar / W
         self.pi = pi_bar / W
-
-
-
-
+        self._mask()
 
