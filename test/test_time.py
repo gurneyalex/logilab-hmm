@@ -5,6 +5,7 @@ from numpy import array, alltrue, allclose, zeros, ones, take, isfortran
 import logilab.hmm.hmm as hmm
 import logilab.hmm.hmmc as hmmc
 import logilab.hmm.hmmf as hmmf
+import logilab.hmm.hmmS as hmmS
 from support import timecall
 
 def setProbaEqui(h1, h2, h3):
@@ -18,15 +19,11 @@ def setProbaEqui(h1, h2, h3):
     h2.pi = h1.pi
     h3.pi = h1.pi
 
-def setProba(h1, h2, h3):
-    h1.setRandomProba()
-    h2.A = h1.A
-    h3.A = h1.A
-    h2.B = h1.B
-    h3.B = h1.B
-    h2.pi = h1.pi
-    h3.pi = h1.pi
-
+def setProba(h, h1):
+    h.A = h1.A
+    h.B = h1.B
+    h.pi = h1.pi
+    
 def test_time_alpha(h1, h2, h3, observation):
     bo = take( h1.B, observation, 0 )
     timecall( "HMM.AlphaScaled    ", h1.AlphaScaled, h1.A, bo, h1.pi )
@@ -87,52 +84,124 @@ def test_time_analyze_log(h1, h2, h3, obs):
     timecall( "HMM_C.analyze_log  ", h3.analyze_log, obs)
 
 def test_time_learn(h1, h2, h3, obs):
-    timecall( "HMM.learn          ", h1.learn, obs, None, 1000, 0)
-    timecall( "HMM_F.learn        ", h2.learn, obs, None, 1000, 0)
-    timecall( "HMM_C.learn        ", h3.learn, obs, None, 1000, 0)
+    timecall( "HMM.learn          ", h1.learn, obs, 1000, 0)
+    timecall( "HMM_F.learn        ", h2.learn, obs, 1000, 0)
+    timecall( "HMM_C.learn        ", h3.learn, obs, 1000, 0)
 
 def test_time_multiple_learn(h1, h2, h3, chains):
-    timecall( "HMM.multiple_learn  ", h1.multiple_learn, chains, None, 1000, 0)
-    timecall( "HMM_F.multiple_learn", h2.multiple_learn, chains, None, 1000, 0)
-    timecall( "HMM_C.multiple_learn", h3.multiple_learn, chains, None, 1000, 0)
+    timecall( "HMM.multiple_learn  ", h1.multiple_learn, chains, 1000, 0)
+    timecall( "HMM_F.multiple_learn", h2.multiple_learn, chains, 1000, 0)
+    timecall( "HMM_C.multiple_learn", h3.multiple_learn, chains, 1000, 0)
+
+def test_time_ensAveragePall(h1, h2, h3, chains):
+    timecall( "HMM.ensembleAveraging", h1.ensemble_averaging, chains, "Pall", 1000, 0)
+    timecall( "HMM_F.ensembleAveraging",h2.ensemble_averaging,chains, "Pall", 1000, 0)
+    timecall( "HMM_C.ensembleAveraging",h3.ensemble_averaging,chains, "Pall", 1000, 0)
+
+def test_time_ensAveragePk(h1, h2, h3, chains):
+    timecall( "HMM.ensembleAveraging", h1.ensemble_averaging, chains, "Pk", 1000, 0)
+    timecall( "HMM_F.ensembleAveraging",h2.ensemble_averaging,chains, "Pk", 1000, 0)
+    timecall( "HMM_C.ensembleAveraging",h3.ensemble_averaging,chains, "Pk", 1000, 0)
+
+def test_time_ensAverageUnit(h1, h2, h3, chains):
+    timecall( "HMM.ensembleAveraging", h1.ensemble_averaging, chains, "unit", 1000, 0)
+    timecall( "HMM_F.ensembleAveraging",h2.ensemble_averaging,chains, "unit", 1000, 0)
+    timecall( "HMM_C.ensembleAveraging",h3.ensemble_averaging,chains, "unit", 1000, 0)
+
+def 
+
+def test_time_trainingStates(h1, initial, chains, observation, states, setStates):
+    setProba(initial, h1)
+    timecall( "ensembleAveragingPall",h1.ensemble_averaging, chains,setStates, "Pall",    1000, 0)
+    setProba(initial, h1)
+    timecall( "ensembleAveragingPk  ",h1.ensemble_averaging,chains, setStates,                                                 "Pk", 1000, 0)
+    setProba(initial, h1)
+    timecall( "ensembleAveragingUnit",h1.ensemble_averaging, chains, setStates,"unit", 1000, 0)
+    setProba(initial, h1)
+#    timecall( "learn                ",h1.learn, observation, states, 1000, 0)
+    setProba(initial, h1)
+#    timecall( "multiple_learn       ",h1.multiple_learn,chains, setStates,1000, 0)
+
 
 if __name__ == "__main__":
     
-    S = range(20)
-    O = range(20)
+    S = range(10)
+    O = range(10)
     test = hmm.HMM( S, O )
     chains = []
-    observation = test.simulate(100)
-    for i in xrange(50):
-        chains.append(test.simulate(50))
-    
+
+    simul = test.simulate(200,1)
+    observation = []
+    state = []
+    for couple in simul:
+        observation.append(couple[1])
+        state.append(couple[0])
+
+    setObservation = []
+    setState = []
+    o = []
+    s = []
+    for i in xrange(20):
+        chains.append(test.simulate(20, 1))
+        for couple in chains[i]:
+            o.append(couple[1])
+            s.append(couple[0])
+        setObservation.append(o)
+        setState.append(s)
+        o = []
+        s = []
+
+    initial = hmm.HMM( S, O)
+    initial.setRandomProba()
     test1 = hmm.HMM( S, O)
     test2 = hmmf.HMM_F( S, O)
     test3 = hmmc.HMM_C( S, O)
-    setProba(test1, test2, test3)
+    hmmS = hmmS.HMMS(S, O)
+    setProba(initial, test1)
+    setProba(initial, test2)
+    setProba(initial, test3)
     print "\n     ----------------- AlphaScaled -----------------------"
-    test_time_alpha(test1, test2, test3, observation)
+#    test_time_alpha(test1, test2, test3, observation)
     print "\n     ----------------- BetaScaled  -----------------------"
-    test_time_beta(test1, test2, test3, observation)
+#    test_time_beta(test1, test2, test3, observation)
     print "\n     -----------------     Ksi     -----------------------"
-    test_time_ksi(test1, test2, test3, observation)
+#    test_time_ksi(test1, test2, test3, observation)
     print "\n     ----------------- UpdateIterB -----------------------"
-    test_time_UpdateIterB(test1, test2, test3, observation)
+#    test_time_UpdateIterB(test1, test2, test3, observation)
     print "\n     -----------------  CorrectM   -----------------------"
-    test_time_CorrectM(test1, test2, test3)
+#    test_time_CorrectM(test1, test2, test3)
     print "\n     ----------------- NormalizeB  -----------------------"
-    test_time_NormalizeB(test1, test2, test3)
+#    test_time_NormalizeB(test1, test2, test3)
     print "\n     -----------------   analyze   -----------------------"
-    test_time_analyze(test1, test2, test3, observation)
+#    test_time_analyze(test1, test2, test3, observation)
     print "\n     ----------------- analyze_log -----------------------"
-    test_time_analyze_log(test1, test2, test3, observation)
+#    test_time_analyze_log(test1, test2, test3, observation)
     print "\n     -----------------    learn    -----------------------"
-    setProbaEqui(test1, test2, test3)
-    test_time_learn(test1, test2, test3, observation)
+    setProba(initial, test1)
+    setProba(initial, test2)
+    setProba(initial, test3)
+#    test_time_learn(test1, test2, test3, observation)
     print "\n     -----------------multiple_learn-----------------------"
-    setProbaEqui(test1, test2, test3)
-    test_time_multiple_learn(test1, test2, test3, chains)
-
-
+    setProba(initial, test1)
+    setProba(initial, test2)
+    setProba(initial, test3)
+#    test_time_multiple_learn(test1, test2, test3, setObservation)
+    print "\n     -------------EnsembleAveragingPall--------------------"
+    setProba(initial, test1)
+    setProba(initial, test2)
+    setProba(initial, test3)
+#    test_time_ensAveragePall(test1, test2, test3, setObservation)
+    print "\n     -------------EnsembleAveragingPk----------------------"
+    setProba(initial, test1)
+    setProba(initial, test2)
+    setProba(initial, test3)
+#    test_time_ensAveragePk(test1, test2, test3, setObservation)
+    print "\n     -------------EnsembleAveragingUnit--------------------"
+    setProba(initial, test1)
+    setProba(initial, test2)
+    setProba(initial, test3)
+#    test_time_ensAverageUnit(test1, test2, test3, setObservation)
+    print "\n     -----------------------class HMMS-------------------------"
+#    test_time_trainingStates(hmmS, initial, setObservation, observation, state, setState)
 
 
