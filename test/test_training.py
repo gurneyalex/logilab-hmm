@@ -3,7 +3,7 @@ from support import deterministic_hmm
 from logilab.hmm.hmm import HMM
 from logilab.hmm.hmmc import HMM_C
 from logilab.hmm.hmmf import HMM_F
-from logilab.hmm.hmmS import HMMS
+import logilab.hmm.hmmS as hmmS
 from numpy.linalg import norm
 
 RTOL = 1e-7
@@ -181,7 +181,7 @@ def test11(HMM, n=10):
     test9_display(errorsUnit)
     return errorsUnit, test
 
-def test12(HMM, n=10): 
+def test12(HMMS, n=10): 
     """This test generate a simple HMM (determinist state transitions)
     And check if the algoritm converge in less than 1000 iterations"""
     S,V,A,B,PI = deterministic_hmm()
@@ -254,5 +254,5 @@ if __name__ == '__main__':
     #test8()
     #test10(HMM_C)
     #test10(HMM_F)
-    test11(HMM)
-    test12(HMM)
+    #test11(HMM)
+    test12(hmmS.HMMS_C)

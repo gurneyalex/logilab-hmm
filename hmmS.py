@@ -225,7 +225,6 @@ class HMMSMixIn:
     def _final_step( self, gamma, obsIndices ):
         """Compute the new model, using gamma"""
         sigma_gamma_B = add.reduce(gamma)
-        null = 0
         for i in range(len(sigma_gamma_B)):
             if sigma_gamma_B[i] < EPSILON:
                 sigma_gamma_B[i] = 1
