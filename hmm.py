@@ -19,24 +19,23 @@
 
 """Hidden Markov Models in Python
 Implementation based on _A Tutorial on Hidden Markov Models and Selected
-Applications in Speech Recognition_, by Lawrence Rabiner, IEEE, 1989, _Improved Estimation of Hidden Markov Model Parameters from Multiple Observation Sequences_, by Richard I. A. Davis, Brian C. Lovell, Terry Caelli, 2002, _Improved Ensemble Training for Hidden Markov Models Using Random Relative Node Permutations_, by Richard I. A. Davis and Brian C. Lovell, 2003.
-This module uses numeric python multyarrays to improve performance and
-reduce memory usage
-"""
+Applications in Speech Recognition_, by Lawrence Rabiner, IEEE, 1989,
+ _Improved Estimation of Hidden Markov Model Parameters from Multiple 
+Observation Sequences_, by Richard I. A. Davis, Brian C. Lovell, Terry Caelli,
+2002, _Improved Ensemble Training for Hidden Markov Models Using Random 
+Relative Node Permutations_, by Richard I. A. Davis and Brian C. Lovell, 2003.
+This module is an heritage of the module HMM and uses numeric python multyarrays 
+to improve performance and reduce memory usage """
 
-__revision__ = "$Id: hmm.py,v 1.15 2005-02-25 20:40:35 nico Exp $"
-
-from numpy import array, ones, zeros, cumsum, searchsorted, \
-     reshape, add, allclose, floor, where, \
-     product, sqrt, dot, multiply, alltrue, log, equal, newaxis, \
-     take, empty_like, isfortran, size
+from numpy import array, ones, zeros, add, cumsum, searchsorted, \
+     product, dot, multiply, alltrue, log, equal, newaxis, \
+     take, empty_like, allclose, where
 from numpy.random import random
 from exceptions import RuntimeError
 import cPickle
 
 # Display log likelyhood every DISPITER iterations while learning
 DISPITER = 100
-
 
 matrixproduct = dot
 
@@ -98,7 +97,7 @@ def _beta_scaled( A, Bo, scale_factors ):
     beta_scaled(t,i)=beta(t,i)*C(t) (From the result of _alpha_scaled)
     Bo is the same as in function _alpha
     """
-    T,N = Bo.shape
+    T, N = Bo.shape
     assert N == A.shape[0]
     scale_factors = scale_factors
     beta = zeros( (T, N), float )
@@ -115,17 +114,17 @@ def _ksi( A, Bo, alpha, beta ):
     """Compute ksi(t,i,j)=P(q_t=Si,q_(t+1)=Sj|model)"""
     N = A.shape[0]
     T = len(Bo)
-    ksi = zeros( (T-1, N, N), float )
+    ksy = zeros( (T-1, N, N), float )
     tmp = Bo * beta
     for t in range(T-1):
         # This does transpose[alpha].(B[obs]*beta[t+1])
         # (where . is matrixproduct)
-        ksit = ksi[t, :, :]
+        ksit = ksy[t, :, :]
         multiply( A, tmp[t+1], ksit )
         multiply( ksit, alpha[t, :, newaxis], ksit )
         ksi_sum = add.reduce( ksit.flat )
         ksit /= ksi_sum
-    return ksi
+    return ksy
 
 def _update_iter_B( gamma, obsIndices, B_bar ):
     """Updates the estimation of the observations probabilities.
@@ -140,7 +139,7 @@ def _update_iter_B( gamma, obsIndices, B_bar ):
     for i in xrange(len(obsIndices)):     # (110) numerateur
         B_bar[obsIndices[i]] += gamma[i]
 
-def _correctm( M, k, p ):
+def _correct_M( M, k, p ):
     """This function is a hack. It looks for states with 0 probabilities, and
     changes this probability to a uniform probability. This avoids divide by zero
     errors, and doesn't change the result of the algorithm.
@@ -189,12 +188,12 @@ class HMM:
     Comments in the source code mentionning a number are references to
     equations in the algorithm descriptions of that paper."""
 
-    AlphaScaled = staticmethod(_alpha_scaled)
-    BetaScaled = staticmethod(_beta_scaled)
-    Ksi = staticmethod(_ksi)
-    UpdateIterB = staticmethod(_update_iter_B)
-    CorrectM = staticmethod(_correctm)
-    NormalizeB = staticmethod(_normalize_B)
+    alpha_scaled = staticmethod(_alpha_scaled)
+    beta_scaled = staticmethod(_beta_scaled)
+    ksi = staticmethod(_ksi)
+    update_iter_B = staticmethod(_update_iter_B)
+    correct_M = staticmethod(_correct_M)
+    normalize_B = staticmethod(_normalize_B)
 
     ORDER = "C"
     
@@ -227,9 +226,9 @@ class HMM:
         self.pi = array(initial_state_proba, float, order=self.ORDER)
         # dimensional assertions
         self.checkHMM()
-        self.makeIndexes()
+        self.make_indexes()
         
-    def makeIndexes(self):
+    def make_indexes(self):
         """Creates the reverse table that maps states/observations names
         to their index in the probabilities array"""
         self.X_index = {}
@@ -275,7 +274,7 @@ class HMM:
             self.N = cPickle.load(f)
             self.M = cPickle.load(f)
             if saveState:
-                self.makeIndexes()
+                self.make_indexes()
             self.A = cPickle.load(f)
             self.pi = cPickle.load(f)
             self.B = zeros( (self.M, self.N), float, self.ORDER )
@@ -289,20 +288,21 @@ class HMM:
         is inconsistent. (Checks that the matrices' sizes are correct and
         that they represents probabilities)."""
         assert self.A.shape == (self.N, self.N), \
-               """transition_proba must be a N*N matrix, where N is len(state_list)"""
+               """transition_proba must be a N*N matrix, where N is 
+                len(state_list)"""
         assert self.B.shape == (self.M, self.N), \
-               """transition_proba must be a M*N matrix, where N is len(state_list)
-               and M is len(observation_list)"""
+               """transition_proba must be a M*N matrix, where N is 
+                len(state_list) and M is len(observation_list)"""
         assert self.pi.shape == (self.N, ), \
                """transition_proba must be a N element vector,
                where N is len(state_list)"""
-        reduced = add.reduce(self.A,1) - 1
+        reduced = add.reduce(self.A, 1) - 1
         assert (alltrue(reduced < EPSILON) and \
                 alltrue(reduced > -EPSILON) and \
                 alltrue(alltrue(self.A<=1.0)) and \
                 alltrue(alltrue(self.A>=0.0))),\
                 """transition_proba must be a probability matrix"""
-        reduced = add.reduce(self.B,0) - 1
+        reduced = add.reduce(self.B, 0) - 1
         assert (alltrue(reduced < EPSILON) and \
                 alltrue(reduced > -EPSILON) and \
                 alltrue(alltrue(self.B<=1.0)) and \
@@ -336,57 +336,57 @@ class HMM:
         """helper method for pickling"""
         return self.omega_X, self.omega_O, self.A, self.B, self.pi
 
-    def setRandomProba(self):
+    def set_random_proba(self):
         """Assigns random probability to all three matrices A, B and pi"""
-        self.setRandomTransitionProba()
-        self.setRandomObservationProba()
-        self.setRandomInitialProba()
+        self.set_random_transition_proba()
+        self.set_random_observation_proba()
+        self.set_random_initial_proba()
         self.checkHMM()
 
-    def resetTransitionProba(self):
+    def reset_transition_proba(self):
         """This resets the state transition matrix to zero. Use it
-        only if you want to use setTransitionProba on some coefficients."""
+        only if you want to use set_transition_proba on some coefficients."""
         multiply( self.A, 0.0, self.A )
 
-    def resetObservationProba(self):
+    def reset_observation_proba(self):
         """This resets the observation matrix to zero. Use it
-        only if you want to use setObservationProba on some coefficients."""
+        only if you want to use set_observation_proba on some coefficients."""
         multiply( self.B, 0.0, self.B )
 
-    def resetInitialProba(self):
+    def reset_initial_proba(self):
         """This resets the initial distribution matrix to zero. Use it
-        only if you want to use setInitialProba on some coefficients."""
+        only if you want to use set_initial_proba on some coefficients."""
         multiply( self.pi, 0.0, self.pi )
 
-    def setRandomTransitionProba(self):
+    def set_random_transition_proba(self):
         """set transition probability matrix to some random values"""
         self.A = random( self.A.shape )
         self.A /= add.reduce( self.A, 1 )[:, newaxis] # normalization
 
-    def setRandomObservationProba(self):
+    def set_random_observation_proba(self):
         """set observation probability matrix to some random values"""
         self.B = random( self.B.shape )
         self.B /= add.reduce( self.B ) # normalization
 
-    def setRandomInitialProba(self):
+    def set_random_initial_proba(self):
         """set initial state probability matrix to some random values"""
         self.pi = random( self.pi.shape )
         self.pi /= add.reduce( self.pi ) # normalization
 
-    def setTransitionProba( self, state1, state2, value ):
+    def set_transition_proba( self, state1, state2, value ):
         """set the probability of a transition form 'state1' to 'state2'"""
         self.A[ self.X_index[state1], self.X_index[state2] ] = value
 
-    def setObservationProba( self, state, obs, value ):
+    def set_observation_proba( self, state, obs, value ):
         """set the probability of generating observation 'obs'
         when in state 'state'"""
         self.B[ self.O_index[obs], self.X_index[state] ] = value
 
-    def setInitialProba( self, state, value ):
+    def set_initial_proba( self, state, value ):
         """set the probability of being initially in state 'state'"""
         self.pi[self.X_index[state]] = value
 
-    def _getObservationIndices( self, observations ):
+    def _get_observationIndices( self, observations ):
         """return observation indices"""
 ##        return [self.O_index[o] for o in observations]
         indices = zeros( len(observations), int )
@@ -402,7 +402,7 @@ class HMM:
         cumA = cumsum( self.A, 1 )
         cumB = cumsum( self.B, 0 )
         r0 = random()
-        state = searchsorted( cumsum(self.pi,0), r0)
+        state = searchsorted( cumsum(self.pi, 0), r0)
         seq = []
         states = []
         
@@ -426,7 +426,7 @@ class HMM:
         T = len(observations)
         N = self.N
         Omega_X = self.omega_X
-        obs = self._getObservationIndices(observations)
+        obs = self._get_observationIndices(observations)
         # initialisation
         delta = zeros( N, float )
         tmp = zeros( N, float )
@@ -461,7 +461,7 @@ class HMM:
         N = self.N
         M = self.M
         Omega_X = self.omega_X
-        obs = self._getObservationIndices(observations)
+        obs = self._get_observationIndices(observations)
         k = equal( A, 0.0 ) * SMALLESTFLOAT
         logA = log( A + k )
         logB = zeros( (M, N), float)
@@ -495,7 +495,7 @@ class HMM:
 
     def log_likelihood( self, observations, trajectory ):
         """return log_likelihood"""
-        obs = self._getObservationIndices(observations)
+        obs = self._get_observationIndices(observations)
         states = [ self.X_index[s] for s in trajectory ]
         res = 0
         N = self.N
@@ -520,13 +520,13 @@ class HMM:
 
     def learn( self, observations, maxiter = 1000, impr=1 ):
         """Train the model according to one sequence of observations"""
-        obs = self._getObservationIndices(observations)
-        iter = self._baumWelch( obs, maxiter, impr )
+        obs = self._get_observationIndices(observations)
+        iter = self._baum_welch( obs, maxiter, impr )
         return iter
 
-    def _getObservations( self, obsIndices ):
-        """Extract the lines of the observations probability matrix corresponding
-        to the actual observations."""
+    def _get_observations( self, obsIndices ):
+        """Extract the lines of the observations probability matrix 
+        corresponding to the actual observations."""
         return take( self.B, obsIndices, 0 )
 
     def _likelihood( self, scale_factors ):
@@ -559,7 +559,7 @@ class HMM:
         obs_list = []
         for k in range(K):
             observations = m_observations[k]
-            obsIndices = self._getObservationIndices(observations)
+            obsIndices = self._get_observationIndices(observations)
             obs_list.append( obsIndices )
             setO = setO | set(observations)  # add new elements observed
         for iter in xrange( 1, maxiter + 1 ):
@@ -567,23 +567,23 @@ class HMM:
             for k in range(K):
                 obsIndices = obs_list[k]
                 Bo = take(self.B, obsIndices, 0)
-                alpha, scale_factors = self.AlphaScaled( self.A, Bo, self.pi )
-                beta  = self.BetaScaled( self.A, Bo, scale_factors )
-                ksi   = self.Ksi( self.A, Bo, alpha, beta )
+                alpha, scale_factors = self.alpha_scaled( self.A, Bo, self.pi )
+                beta  = self.beta_scaled( self.A, Bo, scale_factors )
+                ksy   = self.ksi( self.A, Bo, alpha, beta )
                 gamma = self._gamma( alpha, beta, scale_factors )
                 pi_bar += gamma[0]
                 self._update_iter_gamma( gamma, sigma_gamma_A, sigma_gamma_B )
-                self._update_iter_A( ksi, A_bar )
-                self.UpdateIterB( gamma, obsIndices, B_bar )
+                self._update_iter_A( ksy, A_bar )
+                self.update_iter_B( gamma, obsIndices, B_bar )
                 total_likelihood += self._likelihood( scale_factors )
                 
             #end for k in range(K)
             self._normalize_iter_A( A_bar, sigma_gamma_A )
-            self.NormalizeB( B_bar, sigma_gamma_B )
+            self.normalize_B( B_bar, sigma_gamma_B )
             pi_bar /= K
             # Correct A_bar and B_bar in case 0 probabilities slipped in
-            self.CorrectM( A_bar, 1, 1. / self.N )
-            self.CorrectM( B_bar, 0, 1. / self.M )
+            self.correct_M( A_bar, 1, 1. / self.N )
+            self.correct_M( B_bar, 0, 1. / self.M )
             learning_curve.append( total_likelihood )
             if (iter % dispiter) == 0:
                 if impr:
@@ -602,17 +602,18 @@ class HMM:
             sigma_gamma_B.fill(0)
         else:
             if impr:
-                print "The Baum-Welch algorithm did not converge in %d iterations" % maxiter
+                print "The Baum-Welch algorithm did not converge in",
+                print " %d iterations" % maxiter
         self._mask()
         # Correct B in case 0 probabilities slipped in
         setO = set(self.omega_O) - setO
         while setO != set():
             e = setO.pop()
-            e = self._getObservationIndices([e])
+            e = self._get_observationIndices([e])
             self.B[e[0]] = 0
         return iter, learning_curve
 
-    def _baumWelch( self, obsIndices, maxiter=1000, impr=1 ):
+    def _baum_welch( self, obsIndices, maxiter=1000, impr=1 ):
         """Uses Baum-Welch algorithm to learn the probabilities
         Scaling on the forward and backward values is automatically
         performed when numerical problems (underflow) are encountered.
@@ -628,11 +629,11 @@ class HMM:
             dispiter = DISPITER
         Bo = take( B, obsIndices, 0 )
         for iter in xrange( 1, maxiter + 1 ):
-            alpha, scale_factors = self.AlphaScaled( A, Bo, pi )
-            beta = self.BetaScaled( self.A, Bo, scale_factors )
-            ksi = self.Ksi( self.A, Bo, alpha, beta )
+            alpha, scale_factors = self.alpha_scaled( A, Bo, pi )
+            beta = self.beta_scaled( self.A, Bo, scale_factors )
+            ksy = self.ksi( self.A, Bo, alpha, beta )
             gamma = self._gamma( alpha, beta, scale_factors )
-            A_bar, B_bar, pi_bar = self._final_step( gamma, ksi, obsIndices )
+            A_bar, B_bar, pi_bar = self._final_step( gamma, ksy, obsIndices )
             learning_curve.append( self._likelihood(scale_factors) )
             if impr:
                 if (iter % dispiter) == 0:
@@ -648,7 +649,8 @@ class HMM:
                 self._mask()
         else:
             if impr:
-                print "The Baum-Welch algorithm did not converge in %d iterations" % maxiter
+                print "The Baum-Welch algorithm did not converge",
+                print " in %d iterations" % maxiter
         return iter, learning_curve
 
     def _update_iter_gamma( self, gamma, sigma_gamma_A, sigma_gamma_B ):
@@ -657,9 +659,9 @@ class HMM:
         sigma_gamma_A += sigma_gamma_kA       # (109) et (110) denominateur
         sigma_gamma_B += sigma_gamma_kA + gamma[-1]
 
-    def _update_iter_A( self, ksi, A_bar ):
+    def _update_iter_A( self, ksy, A_bar ):
         """update iter A"""
-        A_bar_k = add.reduce( ksi )
+        A_bar_k = add.reduce( ksy )
         add( A_bar, A_bar_k, A_bar )           # (109) numerateur
     
     def _normalize_iter_A( self, A_bar, sigma_gamma_A ):
@@ -672,14 +674,14 @@ class HMM:
         sigma_gamma_A = 1. / where( sigma_gamma_A, sigma_gamma_A, 1 )
         A_bar *= sigma_gamma_A[:, newaxis]    # (109)
 
-    def _final_step( self, gamma, ksi, obsIndices ):
+    def _final_step( self, gamma, ksy, obsIndices ):
         """Compute the new model, using gamma and ksi"""
         sigma_gamma_A = add.reduce(gamma[:-1])
         sigma_gamma_B = add.reduce(gamma)
         ## Compute new PI
         pi_bar = gamma[0]                       # (40a)
         ## Compute new A
-        A_bar  = add.reduce(ksi)
+        A_bar  = add.reduce(ksy)
         A_bar /= sigma_gamma_A[:, newaxis] # (40b)       
         ## Compute new B
         B_bar = zeros( (self.M, self.N), float )
@@ -687,11 +689,7 @@ class HMM:
             B_bar[obsIndices[i]] += gamma[i] 
         B_bar /= sigma_gamma_B
         return A_bar, B_bar, pi_bar
-
-    def _final_step2( self, gamma, ksi, obsIndices, A_bar, B_bar, pi_bar ):
-        ##_hmm._hmm_final_single( gamma, ksi, obsIndices, A_bar, B_bar, pi_bar )
-        return A_bar, B_bar, pi_bar
-        
+       
     def _stop_condition( self, A_bar, pi_bar, B_bar ):
         """Returns true if the difference between the estimated model
         and the current model is small enough that we can stop the
@@ -723,17 +721,17 @@ class HMM:
             pi = P[i]
             for j in xrange(N):
                 pj = P[j]
-                A[i,j] = self.A[pi,pj]
-            B[:,i] = self.B[:,pi]
+                A[i, j] = self.A[pi, pj]
+            B[:, i] = self.B[:, pi]
             PI[i] = self.pi[pi]
-        return A,B,PI
+        return A, B, PI
 
     def _weighting_factor_Pall(self, setObs):
         """compute Wk = P(setObservations | lambda_k) """
         P = 1
         for obs in setObs:
             Tk = len(obs)
-            obsIndices = self._getObservationIndices(obs)
+            obsIndices = self._get_observationIndices(obs)
             Bo = take(self.B, obsIndices, 0)
             null = 0
             for i in range(Tk):
@@ -741,21 +739,22 @@ class HMM:
             if null:
                 P = 0
             else:
-                alphaScaled, scalingFactor = self.AlphaScaled(self.A, Bo, self.pi)
-                alpha = alphaScaled[Tk-1] / product(scalingFactor, 0) 
+                alpha_s, scalingFactor = self.alpha_scaled(self.A, Bo, self.pi)
+                alpha = alpha_s[Tk-1] / product(scalingFactor, 0) 
                 P *= add.reduce(alpha)
         return P
 
     def _weighting_factor_Pk(self, observation):
         """compute Wk = P(Observation_k | lambda_k) """
         Tk = len(observation)
-        obsIndices = self._getObservationIndices(observation)
+        obsIndices = self._get_observationIndices(observation)
         Bo = take(self.B, obsIndices, 0)
-        alphaScaled, scalingFactor = self.AlphaScaled(self.A, Bo, self.pi)
-        alpha = alphaScaled[Tk-1] / product(scalingFactor, 0) 
+        alpha_s, scalingFactor = self.alpha_scaled(self.A, Bo, self.pi)
+        alpha = alpha_s[Tk-1] / product(scalingFactor, 0)
         return add.reduce(alpha)
 
-    def ensemble_averaging(self, setObservations, weighting_factor="unit", maxiter=1000, impr=1):
+    def ensemble_averaging(self, setObservations, weighting_factor="unit", 
+                            maxiter=1000, impr=1):
         """Uses ensemble averaging method to learn the probabilities on multiple
         observations sequences"""
         N = self.N
@@ -765,12 +764,12 @@ class HMM:
         A_bar = zeros( (N, N))
         B_bar = zeros( (self.M, N))
         pi_bar = zeros(N)
-        for k, obs in enumerate(setObservations):
+        for obs in setObservations:
             hmmk.A = self.A
             hmmk.B = self.B
             hmmk.pi = self.pi
-            obsIndices = self._getObservationIndices(obs)
-            nit, learningCurve = hmmk._baumWelch(obsIndices, maxiter, impr)
+            obsIndices = self._get_observationIndices(obs)
+            hmmk._baum_welch(obsIndices, maxiter, impr)
             if weighting_factor == "Pall":
                 Wk = hmmk._weighting_factor_Pall(setObservations)
             elif weighting_factor == "Pk":
@@ -781,11 +780,12 @@ class HMM:
             B_bar = B_bar + Wk * hmmk.B
             pi_bar = pi_bar + Wk * hmmk.pi
             W = W + Wk
-            if W == 0:
-                W = 1
-                print "The ensemble averaging method did not converge"
-        self.A = A_bar / W
-        self.B = B_bar / W
-        self.pi = pi_bar / W
-        self._mask()
+        if W == 0:
+            W = 1
+            print "The ensemble averaging method did not converge"
+        else:
+            self.A = A_bar / W
+            self.B = B_bar / W
+            self.pi = pi_bar / W
+            self._mask()
 

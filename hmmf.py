@@ -17,17 +17,17 @@ class HMM_F(HMM):
 
     ORDER = "F"
     
-    AlphaScaled = staticmethod(_hmmf.hmm_for.alpha_scaled)
-    BetaScaled = staticmethod(_hmmf.hmm_for.beta_scaled)
-    Ksi = staticmethod(_hmmf.hmm_for.hmm_ksi)
-#    UpdateIterB = staticmethod(_hmmf.hmm_for.update_iter_b)
+    alpha_scaled = staticmethod(_hmmf.hmm_for.alpha_scaled)
+    beta_scaled = staticmethod(_hmmf.hmm_for.beta_scaled)
+    ksi = staticmethod(_hmmf.hmm_for.hmm_ksi)
+#    update_iter_B = staticmethod(_hmmf.hmm_for.update_iter_b)
     @staticmethod
-    def UpdateIterB(gamma, obsIndices, B_Bar):
+    def update_iter_B(gamma, obsIndices, B_Bar):
         B_Bar[:] =  _hmmf.hmm_for.update_iter_b(gamma, obsIndices, B_Bar)
-    CorrectM = staticmethod(_hmmf.hmm_for.correctm)
-#    NormalizeB = staticmethod(_hmmf.hmm_for.normalize_b)
+    correct_M = staticmethod(_hmmf.hmm_for.correctm)
+#    normalize_B = staticmethod(_hmmf.hmm_for.normalize_b)
     @staticmethod
-    def NormalizeB(B_Bar, sigma_gamma_B):
+    def normalize_B(B_Bar, sigma_gamma_B):
         B_Bar[:] = _hmmf.hmm_for.normalize_b(B_Bar, sigma_gamma_B)
     _gamma = staticmethod(_hmmf.hmm_for.gamma)
 
@@ -36,9 +36,9 @@ class HMM_F_prof(HMM):
 
     ORDER = "F"
     
-    AlphaScaled = staticmethod(_hmmf.hmm_for.alpha_scaled)
-    BetaScaled = staticmethod(_hmmf.hmm_for.beta_scaled)
-    Ksi = staticmethod(_hmmf.hmm_for.hmm_ksi)
-    UpdateIterB = staticmethod(_hmmf.hmm_for.update_iter_b)
-    CorrectM = staticmethod(_hmmf.hmm_for.correctm)
-    NormalizeB = staticmethod(_hmmf.hmm_for.normalize_b)
+    alpha_scaled = staticmethod(_hmmf.hmm_for.alpha_scaled)
+    beta_scaled = staticmethod(_hmmf.hmm_for.beta_scaled)
+    ksi = staticmethod(_hmmf.hmm_for.hmm_ksi)
+    update_iter_B = staticmethod(_hmmf.hmm_for.update_iter_b)
+    correct_M = staticmethod(_hmmf.hmm_for.correctm)
+    normalize_B = staticmethod(_hmmf.hmm_for.normalize_b)

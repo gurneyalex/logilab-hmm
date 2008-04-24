@@ -20,37 +20,37 @@ except:
 class HMM_C(HMM):
     "HMM"
     
-    AlphaScaled = staticmethod(_hmm._hmm_alpha_scaled)
-    BetaScaled = staticmethod(_hmm._hmm_beta_scaled)
-    Ksi = staticmethod(_hmm._hmm_ksi)
-    UpdateIterB = staticmethod(_hmm._hmm_update_iter_B)
-    CorrectM = staticmethod(_hmm._hmm_correctm)
-    NormalizeB = staticmethod(_hmm._hmm_normalize_B)
+    alpha_scaled = staticmethod(_hmm._hmm_alpha_scaled)
+    beta_scaled = staticmethod(_hmm._hmm_beta_scaled)
+    ksi = staticmethod(_hmm._hmm_ksi)
+    update_iter_B = staticmethod(_hmm._hmm_update_iter_B)
+    correct_M = staticmethod(_hmm._hmm_correctm)
+    normalize_B = staticmethod(_hmm._hmm_normalize_B)
 
 
 class HMM_C_prof(HMM):
-    def AlphaScaled(self, A, Bo, pi):
+    def alpha_scaled(self, A, Bo, pi):
         """See _alpha_scaled. This is a wrapper for the C version
         of the function."""
         return _hmm._hmm_alpha_scaled( A, Bo, pi )
 
-    def BetaScaled( self, A, Bo, scale_factors ):
+    def beta_scaled( self, A, Bo, scale_factors ):
         """See _beta_scaled. This is a wrapper for the C version
         of the function."""
         return _hmm._hmm_beta_scaled( A, Bo, scale_factors )
 
-    def Ksi( self, A, Bo, alpha, beta ):
+    def ksi( self, A, Bo, alpha, beta ):
         """See _ksi. This is a wrapper for the C version
         of the function."""
         return _hmm._hmm_ksi( A, Bo, alpha, beta )
 
-    def UpdateIterB( self, gamma, obsIndices, B_bar ):
+    def update_iter_B( self, gamma, obsIndices, B_bar ):
         """See _update_iter_B. This function is a wqrapper for the
         C version of _update_iter_B."""
         _hmm._hmm_update_iter_B( gamma, obsIndices, B_bar )
 
-    def CorrectM( self, M, k, v ):
+    def correct_M( self, M, k, v ):
         return _hmm._hmm_correctm( M, k, v )
 
-    def NormalizeB( self, B_bar, sigma_gamma_B ):
+    def normalize_B( self, B_bar, sigma_gamma_B ):
         _hmm._hmm_normalize_B( B_bar, sigma_gamma_B )
