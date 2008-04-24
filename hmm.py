@@ -678,6 +678,12 @@ class HMM:
         """Compute the new model, using gamma and ksi"""
         sigma_gamma_A = add.reduce(gamma[:-1])
         sigma_gamma_B = add.reduce(gamma)
+        for i in range(len(sigma_gamma_B)):
+            if sigma_gamma_B[i] < EPSILON:
+                sigma_gamma_B[i] = 1
+        for i in range(len(sigma_gamma_A)):
+            if sigma_gamma_A[i] < EPSILON:
+                sigma_gamma_A[i] = 1
         ## Compute new PI
         pi_bar = gamma[0]                       # (40a)
         ## Compute new A

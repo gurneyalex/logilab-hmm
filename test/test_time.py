@@ -157,7 +157,8 @@ if __name__ == "__main__":
     test1 = hmm.HMM( S, O)
     test2 = hmmf.HMM_F( S, O)
     test3 = hmmc.HMM_C( S, O)
-    hmmS = hmmS.HMMS(S, O)
+    hmmSC = hmmS.HMMS_C(S, O)
+    hmms = hmmS.HMMS(S, O)
     setProba(test1, initial)
     setProba(test2, initial)
     setProba(test3, initial)
@@ -202,19 +203,19 @@ if __name__ == "__main__":
     setProba(test2, initial)
     setProba(test3, initial)
 #    test_time_ensAverageUnit(test1, test2, test3, setObservation)
-    print "\n     -------------------class HMMS-------------------------"
-    setProba(hmmS, test)
-    test_one_run_Pk_states(hmmS, initial, setObservation, 
+    print "\n     -----------------class HMMS_C-------------------------"
+    setProba(hmmSC, test)
+    test_one_run_Pk_states(hmmSC, initial, setObservation, 
                         observation, state, setState)
-    setProba(hmmS, test)
-    test_one_run_unit_states(hmmS, initial, setObservation, 
+    setProba(hmmSC, test)
+    test_one_run_unit_states(hmmSC, initial, setObservation, 
                         observation, state, setState)
-    setProba(hmmS, test)
-    test_one_run_Pall_states(hmmS, initial, setObservation, 
+    setProba(hmmSC, test)
+    test_one_run_Pall_states(hmmSC, initial, setObservation, 
                         observation, state, setState)
-    setProba(hmmS, test)
-    test_one_run_mult_learn_states(hmmS, initial, setObservation, 
+    setProba(hmmSC, test)
+    test_one_run_mult_learn_states(hmmSC, initial, setObservation, 
                         observation, state, setState)
-    setProba(hmmS, initial)
-    test_one_run_unit_states(hmmS, initial, setObservation, 
+    setProba(hmmSC, initial)
+    test_one_run_unit_states(hmmSC, initial, setObservation, 
                         observation, state, setState)
