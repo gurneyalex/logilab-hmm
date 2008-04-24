@@ -1,11 +1,9 @@
-import autopath
-from support import timecall, deterministic_hmm
+from support import deterministic_hmm
 
 from logilab.hmm.hmm import HMM
 from logilab.hmm.hmmc import HMM_C
 from logilab.hmm.hmmf import HMM_F
-
-from numpy import array, take, alltrue, allclose
+from logilab.hmm.hmmS import HMMS
 from numpy.linalg import norm
 
 RTOL = 1e-7
@@ -18,7 +16,7 @@ def test5():
     """Train a model over some simulated values from an initial
     model"""
     test = HMM(['a', 'b'], ['s1', 's2', 's3'])
-    test.setRandomProba()
+    test.set_random_proba()
     print 'Original'
     print 'A =', test.A
     print 'B =', test.B
@@ -27,7 +25,7 @@ def test5():
     print 'Generating sample data...'
     sample =  test.simulate(500)
     print 'Randomizing model...'
-    test.setRandomProba()
+    test.set_random_proba()
     print 'Training model...'
     test.learn(sample, None, 3000)
     print 'trained values'
@@ -38,7 +36,7 @@ def test5():
 def test6():
     """Same as test5 but with a bigger state space and observations values"""
     test = HMM(range(3), range(4))
-    test.setRandomProba()
+    test.set_random_proba()
     print 'Original'
     print 'A =', test.A
     print 'B =', test.B
@@ -47,7 +45,7 @@ def test6():
     print 'Generating sample data...'
     sample = test.simulate(1000)
     print 'Randomizing model...'
-    test.setRandomProba()
+    test.set_random_proba()
     print 'Training model...'
     test.learn(sample, None, 1000)
     print 'trained values'
@@ -62,7 +60,7 @@ def test8():
     test = HMM(range(10), range(50))
     print 'Generating sample data...'
     l = []
-    test.setRandomProba()
+    test.set_random_proba()
     for i in range(10):
         obs = test.simulate(100)
         l.append(obs)
@@ -72,7 +70,7 @@ def test8():
     print 'pi =', test.pi
     print
     print 'Randomizing model...'
-    test.setRandomProba()
+    test.set_random_proba()
     print 'Training model...'
     test.multiple_learn(l)
     print 'trained values'
@@ -92,15 +90,6 @@ def test9_errors(gene, test):
         error2 = error2bis
         error3 = norm( gene.pi - test.pi[::-1] )
     return error1, error2, error3
-
-#def test9_errors( gene, test):
-#    gA, gB, gPI = gene.normalize( [1,0] )
-#    tA, tB, tPI = test.normalize( [1,0] )
-#    if norm(gB-tB)>norm(gene.B-test.B):
-#        gA, gB, gPI = gene.A, gene.B, gene.pi
-#        tA, tB, tPI = test.A, test.B, test.pi
-#    return norm( gA-tA ), norm( gB-tB ), norm( gPI - tPI )
-
 
 def test9_display(errors):
     """Displays the computed errors"""
@@ -126,14 +115,14 @@ def test9(n=10):
         print "B: ", test.B
         errors.append([i, iteration, error1, error2, error3,
                        curve, (t2 - t1) / iteration])
-        test.setRandomProba()
+        test.set_random_proba()
     test9_display(errors)
     return errors
 
 def test10(HMM, n=10): 
     """This test generate a simple HMM (determinist state transitions)
     And check if the algoritm converge in less than 1000 iterations"""
-    S,V,A,B,PI = deterministic_hmm()
+    S, V, A, B, PI = deterministic_hmm()
     gene = HMM( S, V, A, B, PI )
     print "Generating data..."
     data = [ gene.simulate(70) for i in range(10) ] 
@@ -141,13 +130,10 @@ def test10(HMM, n=10):
     errors = []
     for i in xrange(n):
         print "round ", i
-        test.setRandomProba()
+        test.set_random_proba()
         iteration, curve = test.multiple_learn(data)        
         error1, error2, error3 = test9_errors( gene, test )
         _A, _B, _pi = test.normalize()
-        print "A: ", _A
-        print "B: ", _B
-        print "Pi:", _pi
         errors.append([i, iteration, error1, error2, error3, curve, 0])
     test9_display(errors)
     return errors, test
@@ -157,38 +143,31 @@ def test11(HMM, n=10):
     And check if the algoritm converge in less than 1000 iterations"""
     S,V,A,B,PI = deterministic_hmm()
     gene = HMM( S, V, A, B, PI )
-    print "original:"
-    gene.dump()
-    print "pi\n",gene.pi
     print "Generating data..."
-    data = [ gene.simulate(70) for i in range(10) ] 
+    data = [ gene.simulate(30) for i in range(30) ] 
     test = HMM(['a', 'b'], ['s1', 's2', 's3'])
     errorsPall = []
     errorsPk = []
     errorsUnit = []
     for i in xrange(n):
         print "round ", i
-        test.setRandomProba()
+        test.set_random_proba()
         A = test.A
         B = test.B
         pi = test.pi
-        test.ensemble_averaging(data, None,"Pall", 1000, 0)        
+        test.ensemble_averaging(data, "Pall", 1000, 0)        
         errorPall1, errorPall2, errorPall3 = test9_errors( gene, test )
         test.A = A
         test.B = B
         test.pi = pi
-        test.ensemble_averaging(data, None,"Pk", 1000, 0)        
+        test.ensemble_averaging(data, "Pk", 1000, 0)        
         errorPk1, errorPk2, errorPk3 = test9_errors( gene, test )
         test.A = A
         test.B = B
         test.pi = pi
-        test.ensemble_averaging(data, None,"unit", 1000, 0)        
+        test.ensemble_averaging(data, "unit", 1000, 0)        
         errorUnit1, errorUnit2, errorUnit3 = test9_errors( gene, test )
         _A, _B, _pi = test.normalize()
-        #print "A: ", _A
-        #print "B: ", _B
-        #print "Pi:", _pi
-        #print test.pi
         iteration = 1
         curve = 1
         errorsPall.append([i, iteration, errorPall1, errorPall2, errorPall3, curve, 0])
@@ -202,10 +181,78 @@ def test11(HMM, n=10):
     test9_display(errorsUnit)
     return errorsUnit, test
 
+def test12(HMM, n=10): 
+    """This test generate a simple HMM (determinist state transitions)
+    And check if the algoritm converge in less than 1000 iterations"""
+    S,V,A,B,PI = deterministic_hmm()
+    gene = HMM( S, V, A, B, PI )
+    print "Generating data..."
+    setObservation = []
+    setState = []
+    o = []
+    s = []
+    chains = []
+    for i in xrange(30):
+        chains.append(gene.simulate(30, 1))
+        for couple in chains[i]:
+            o.append(couple[1])
+            s.append(couple[0])
+        setObservation.append(o)
+        setState.append(s)
+        o = []
+        s = []
+
+    test = HMMS(['a', 'b'], ['s1', 's2', 's3'])
+    errorsPall = []
+    errorsPk = []
+    errorsUnit = []
+    errors_mult_l = []
+    for i in xrange(n):
+        print "round ", i
+        test.set_random_proba()
+        A = test.A
+        B = test.B
+        pi = test.pi
+        test.ensemble_averaging(setObservation, setState, "Pall", 1000, 0)        
+        errorPall1, errorPall2, errorPall3 = test9_errors( gene, test )
+        test.A = A
+        test.B = B
+        test.pi = pi
+        test.ensemble_averaging(setObservation, setState, "Pk", 1000, 0)    
+        errorPk1, errorPk2, errorPk3 = test9_errors( gene, test )
+        test.A = A
+        test.B = B
+        test.pi = pi
+        test.ensemble_averaging(setObservation, setState, "unit", 1000, 0)
+        errorUnit1, errorUnit2, errorUnit3 = test9_errors( gene, test )
+        test.A = A
+        test.B = B
+        test.pi = pi
+        test.multiple_learn(setObservation, setState, 1000, 0)
+        error_mult_l1, errorUnit_mult_l2, error_mut_l3 = test9_errors( gene, test )
+        _A, _B, _pi = test.normalize()
+        iteration = 1
+        curve = 1
+
+        errorsPall.append([i, iteration, errorPall1, errorPall2, errorPall3, curve, 0])
+        errorsPk.append([i, iteration, errorPk1, errorPk2, errorPk3, curve, 0])
+        errorsUnit.append([i, iteration, errorUnit1, errorUnit2, errorUnit3, curve, 0])
+        errors_mult_l.append([i, iteration, error_mult_l1, errorUnit_mult_l2, error_mut_l3, curve, 0])
+
+    print "-----------------Pall----------------"
+    test9_display(errorsPall)
+    print "------------------Pk-----------------"
+    test9_display(errorsPk)
+    print "-----------------Unit----------------"
+    test9_display(errorsUnit)
+    print "-----------multiple_learn------------"
+    test9_display(errors_mult_l)
+    return errorsUnit, test
+
 if __name__ == '__main__':
     #test6()
     #test8()
     #test10(HMM_C)
     #test10(HMM_F)
-    test10(HMM)
-    #test11(HMM)
+    test11(HMM)
+    test12(HMM)
