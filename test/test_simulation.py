@@ -1,4 +1,5 @@
-
+from numpy import array
+from logilab.hmm.hmm import HMM
 
 def test4():
     """A simple simulation test"""
@@ -9,3 +10,6 @@ def test4():
     test.dump()
     print test.simulate(10)
     print test.simulate(10, 1)
+
+if __name__ == "__main__":
+    test4()
