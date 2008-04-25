@@ -701,7 +701,6 @@ class TestEnsembleAveraging(unittest.TestCase):
         self.failUnless( allclose(resA, self.det.A))
         self.failUnless( allclose(resB, self.det.B))
         self.failUnless( allclose(respi, self.det.pi))
-
 class TestPickle(unittest.TestCase):
     """ test the pickle implementation """
     
