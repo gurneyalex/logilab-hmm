@@ -18,7 +18,7 @@ http://www.logilab.fr/ -- mailto:contact@logilab.fr
 modname = 'hmm'
 distname = 'logilab-hmm'
 
-numversion = [0, 5, 0]
+numversion = [0, 6, 0]
 version = '.'.join([str(num) for num in numversion])
 
 

@@ -1,11 +1,8 @@
-import autopath
 from support import timecall
-
 from logilab.hmm.hmm import HMM
 from logilab.hmm.hmmc import HMM_C
 from logilab.hmm.hmmf import HMM_F
-
-from numpy import array, take, alltrue
+from numpy import take
 
 
 def test_time_alpha():
