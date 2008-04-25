@@ -1,4 +1,4 @@
-# -*- coding: ISO-8859-1 -*-
+# -*- coding: iso-8859-1 -*-
 # This program is free software; you can redistribute it and/or modify it under
 # the terms of the GNU General Public License as published by the Free Software
 # Foundation; either version 2 of the License, or (at your option) any later
@@ -15,15 +15,15 @@
 http://www.logilab.fr/ -- mailto:contact@logilab.fr  
 """
 
-modname = 'hmm'
 distname = 'logilab-hmm'
+modname = 'hmm'
 
-numversion = [0, 6, 0]
+numversion = [0, 5, 0]
 version = '.'.join([str(num) for num in numversion])
 
 
 license = 'GPL'
-copyright = '''Copyright © 2001-2003 LOGILAB S.A. (Paris, FRANCE).
+copyright = '''Copyright © 2001-2008 LOGILAB S.A. (Paris, FRANCE).
 http://www.logilab.fr/ -- mailto:contact@logilab.fr'''
 
 short_desc = "Hidden Markov Models in Python"
@@ -36,7 +36,7 @@ reduce memory usage."""
 author = "Alexandre Fayolle"
 author_email = "Alexandre.Fayolle@logilab.fr"
 
-web = "http://www.logilab.org/projects/%s" % modname
+web = "http://www.logilab.org/projects/%s" % distname
 ftp = "ftp://ftp.logilab.org/pub/%s" % modname
 mailinglist = "http://lists.logilab.org/mailman/listinfo/ai-projects"
 

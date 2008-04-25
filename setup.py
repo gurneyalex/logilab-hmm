@@ -30,6 +30,10 @@ from __pkginfo__ import modname, version, license, short_desc, long_desc, \
      web, author, author_email
 # import optional features
 try:
+    from __pkginfo__ import distname
+except ImportError:
+    distname = modname
+try:
     from __pkginfo__ import scripts
 except ImportError:
     scripts = []
@@ -133,7 +137,7 @@ def install(**kwargs):
         kwargs['package_dir'] = {modname : '.'}
         packages = [modname] + get_packages(os.getcwd(), modname)
     kwargs['packages'] = packages
-    dist = setup(name = modname,
+    dist = setup(name = distname,
                  version = version,
                  license =license,
                  description = short_desc,
