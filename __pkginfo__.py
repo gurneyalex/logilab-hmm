@@ -23,7 +23,7 @@ version = '.'.join([str(num) for num in numversion])
 
 
 license = 'GPL'
-copyright = '''Copyright © 2001-2003 LOGILAB S.A. (Paris, FRANCE).
+copyright = '''Copyright © 2001-2008 LOGILAB S.A. (Paris, FRANCE).
 http://www.logilab.fr/ -- mailto:contact@logilab.fr'''
 
 short_desc = "Hidden Markov Models in Python"
