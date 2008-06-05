@@ -149,12 +149,12 @@ class HMMSMixIn:
             # Correct A_bar and B_bar in case 0 probabilities slipped in
             self.correct_M( B_bar, 0, 1. / self.M )
             learning_curve.append( total_likelihood )
-            if (iter % dispiter) == 0:
-                if impr:
-                    print "Iter ", iter, " log=", total_likelihood
+#            if (iter % dispiter) == 0:
+#                if impr:
+#                    print "Iter ", iter, " log=", total_likelihood
             if self._stop_condition(pi_bar, B_bar ):
-                if impr:
-                    print 'Converged in %d iterations' % iter
+#                if impr:
+#                    print 'Converged in %d iterations' % iter
                 break
             
             self.B, B_bar   = B_bar, self.B
@@ -198,12 +198,12 @@ class HMMSMixIn:
             gamma = self._gamma( alpha, beta, scale_factors )
             B_bar, pi_bar = self._final_step( gamma, obsIndices )
             learning_curve.append( self._likelihood(scale_factors) )
-            if impr:
-                if (iter % dispiter) == 0:
-                    print "Iter ", iter, " log=", learning_curve[-1]
+#            if impr:
+#                if (iter % dispiter) == 0:
+#                    print "Iter ", iter, " log=", learning_curve[-1]
             if self._stop_condition(pi_bar, B_bar):
-                if impr:
-                    print 'Converged in %d iterations' % iter
+#                if impr:
+#                    print 'Converged in %d iterations' % iter
                 break
             else:
                 self.B = B = B_bar
