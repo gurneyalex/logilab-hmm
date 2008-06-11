@@ -544,7 +544,7 @@ class HMM:
         """
         # remove empty lists
         m_observations = filter( lambda x: x, m_observations )
-        setO =  set()   # set of obsevations        
+        setO =  set()   # set of observations        
         K = len( m_observations )
         learning_curve = []
         sigma_gamma_A = zeros( (self.N, ), float, order=self.ORDER )
@@ -561,7 +561,7 @@ class HMM:
             observations = m_observations[k]
             obsIndices = self._get_observationIndices(observations)
             obs_list.append( obsIndices )
-            setO = setO | set(observations)  # add new elements observed
+            setO = setO | set(obsIndices)  # add new elements observed
         for iter in xrange( 1, maxiter + 1 ):
             total_likelihood = 0
             for k in range(K):
@@ -606,11 +606,10 @@ class HMM:
                 print " %d iterations" % maxiter
         self._mask()
         # Correct B in case 0 probabilities slipped in
-        setO = set(self.omega_O) - setO
-        while setO != set():
+        setO = set(range(self.M)) - setO
+        while setO:
             e = setO.pop()
-            e = self._get_observationIndices([e])
-            self.B[e[0]] = 0
+            self.B[e] = 0
         return iter, learning_curve
 
     def _baum_welch( self, obsIndices, maxiter=1000, impr=1 ):
