@@ -21,6 +21,7 @@ class HMM_F(HMM):
     beta_scaled = staticmethod(_hmmf.hmm_for.beta_scaled)
     ksi = staticmethod(_hmmf.hmm_for.hmm_ksi)
 #    update_iter_B = staticmethod(_hmmf.hmm_for.update_iter_b)
+# XXX: there should be *NO* copy, we must fix the function prototype instead
     @staticmethod
     def update_iter_B(gamma, obsIndices, B_Bar):
         B_Bar[:] =  _hmmf.hmm_for.update_iter_b(gamma, obsIndices, B_Bar)
