@@ -6,3 +6,5 @@
 \.pyc$
 ^build/
 \.so$
+_hmmf-f2pywrappers2.f90$
+_hmmfmodule.c$
