@@ -30,6 +30,7 @@ to improve performance and reduce memory usage """
 from numpy import array, ones, zeros, add, cumsum, searchsorted, \
      product, dot, multiply, alltrue, log, equal, newaxis, \
      take, empty_like, allclose, where
+from itertools import islice
 from numpy.random import random
 from exceptions import RuntimeError
 import cPickle
@@ -395,28 +396,34 @@ class HMM:
             indices[k] = self.O_index[o]
             k += 1
         return indices
-    
-    def simulate( self, length, show_hidden = 0 ):
-        """generates a random sequence of observations of given length
-        if show_hidden is true, returns a liste of (state,observation)"""
+
+    def generate_observations( self, show_hidden = True ):
+        """yield random observations.
+
+        If show_hidden is True, yields a couples (state, observation)
+        """
         cumA = cumsum( self.A, 1 )
         cumB = cumsum( self.B, 0 )
         r0 = random()
         state = searchsorted( cumsum(self.pi, 0), r0)
-        seq = []
-        states = []
-        
-        for i in xrange(length):
-            states.append(state)
+
+        while True:
             r1 = random()
             symbol = self.omega_O[ searchsorted( cumB[:, state], r1 ) ]
             if show_hidden:
-                seq.append( (self.omega_X[state], symbol) )
+                yield (self.omega_X[state], symbol)
             else:
-                seq.append(symbol)
+                yield symbol
             r2 = random()
             state = searchsorted( cumA[state, :], r2 )
-        return seq
+
+    def simulate( self, length, show_hidden = True ):
+        """Return a sequence of given length of random observations.
+
+        If show_hidden is True, returns a liste of (state, observation)
+        """
+        subiter = islice(self.generate_observations(show_hidden), length)
+        return list(subiter)
 
     def analyze( self, observations ):
         """use Viterbi algorithm to
@@ -449,7 +456,7 @@ class HMM:
         trajectory = [Omega_X[i] for i in i_star]
         trajectory.reverse() # put time back in the right direction
         return trajectory
-        
+
     def analyze_log( self, observations ):
         """use a modified Viterbi algorithm (using log P) to
         find the states corresponding to the observations."""
